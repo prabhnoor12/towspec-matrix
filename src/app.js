@@ -1,4 +1,3 @@
-// Pure Vanilla JS Engine: Zero-Thrashing Towing/Payload Calculator, Modern Sortable Tables & Active-View Ad Refresh
 (function () {
   'use strict';
 
@@ -9,16 +8,114 @@
     minimumFractionDigits: 2
   });
   const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+  const supportsAccentColor =
+    typeof CSS !== 'undefined' && CSS.supports && CSS.supports('accent-color', '#1d4ed8');
 
   // =========================================================================
-  // 1. REAL-TIME TOWING, PAYLOAD & GCWR RIG SIMULATOR (Cached DOM Refs for <1ms INP)
+  // 1. ADAPTIVE DARK / LIGHT MODE TOGGLE (dark-mode & dark-mode-toggle)
+  // =========================================================================
+  function initThemeToggle() {
+    const meta = document.querySelector('meta[name="color-scheme"]');
+    const btn = document.getElementById('theme-toggle-btn');
+    if (!meta || !btn) return;
+
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function getSystemScheme() {
+      return mql.matches ? 'dark' : 'light';
+    }
+
+    function getRenderedScheme() {
+      const content = meta.getAttribute('content') || 'light dark';
+      if (content === 'dark' || content === 'light') return content;
+      return getSystemScheme();
+    }
+
+    function updateButtonLabel() {
+      const current = getRenderedScheme();
+      btn.textContent = current === 'dark' ? '☀ Light' : '☾ Dark';
+      btn.setAttribute(
+        'aria-label',
+        current === 'dark' ? 'Switch to light color scheme' : 'Switch to dark color scheme'
+      );
+    }
+
+    btn.addEventListener('click', () => {
+      const sys = getSystemScheme();
+      const current = getRenderedScheme();
+      const target = current === 'dark' ? 'light' : 'dark';
+
+      try {
+        if (target !== sys) {
+          localStorage.setItem('color-scheme', target);
+          meta.setAttribute('content', target);
+        } else {
+          // Target matches system preference: remove stored override so OS remains source of truth
+          localStorage.removeItem('color-scheme');
+          meta.setAttribute('content', 'light dark');
+        }
+      } catch (e) {
+        meta.setAttribute('content', target !== sys ? target : 'light dark');
+      }
+      updateButtonLabel();
+    });
+
+    mql.addEventListener('change', updateButtonLabel);
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'color-scheme') {
+        meta.setAttribute('content', e.newValue ?? 'light dark');
+        updateButtonLabel();
+      }
+    });
+
+    updateButtonLabel();
+  }
+
+  // =========================================================================
+  // 2. GLOBAL FUZZY QUICK-JUMP VEHICLE FINDER (<search> + <datalist>)
+  // =========================================================================
+  function initQuickJumpSearch() {
+    const input = document.getElementById('global-vehicle-jump');
+    const datalist = document.getElementById('global-vehicle-datalist');
+    if (!input || !datalist) return;
+
+    const slugMap = new Map();
+    for (const opt of datalist.options) {
+      if (opt.dataset.slug) {
+        slugMap.set(opt.value.toLowerCase(), opt.dataset.slug);
+      }
+    }
+
+    function tryJump() {
+      const val = input.value.trim().toLowerCase();
+      if (slugMap.has(val)) {
+        window.location.href = '/towing/' + slugMap.get(val) + '/';
+      }
+    }
+
+    input.addEventListener('change', tryJump);
+    input.addEventListener('keydown', (e) => {
+      if (e.isComposing) return;
+      if (e.key === 'Enter') {
+        const val = input.value.trim().toLowerCase();
+        if (slugMap.has(val)) {
+          e.preventDefault();
+          window.location.href = '/towing/' + slugMap.get(val) + '/';
+        }
+      }
+    });
+  }
+
+  // =========================================================================
+  // 3. REAL-TIME TOWING, PAYLOAD, DOOR-STICKER OVERRIDE & LIVE SVG SCHEMATIC
   // =========================================================================
   function initRigCalculator() {
     const calcRoot = document.getElementById('rig-calculator');
     if (!calcRoot) return;
 
     const maxTow = Number(calcRoot.dataset.maxTow || 10000);
-    const maxPayload = Number(calcRoot.dataset.maxPayload || 1800);
+    const factoryMaxPayload = Number(calcRoot.dataset.maxPayload || 1800);
+    let activeMaxPayload = factoryMaxPayload;
     const gcwr = Number(calcRoot.dataset.gcwr || 16500);
     const curbWeight = Number(calcRoot.dataset.curbWeight || 5200);
     const vehicleName = calcRoot.dataset.vehicleName || 'Selected Vehicle';
@@ -35,10 +132,12 @@
     const inputPassengers = document.getElementById('input-passengers-lbs');
     const inputCargo = document.getElementById('input-cargo-lbs');
     const inputHitch = document.getElementById('input-hitch-lbs');
+    const inputCustomPayload = document.getElementById('input-custom-payload');
+    const btnResetPayload = document.getElementById('btn-reset-payload');
+    const payloadErr = document.getElementById('door-payload-error');
 
     if (!inputTrailer || !inputTonguePct || !inputPassengers || !inputCargo || !inputHitch) return;
 
-    // Cache all output DOM nodes once at init to prevent repeated DOM queries during slider drag
     const dom = {
       rTrailer: document.getElementById('readout-trailer'),
       rTongue: document.getElementById('readout-tongue'),
@@ -65,7 +164,14 @@
       verdictTitle: document.getElementById('verdict-title-text'),
       verdictBadge: document.getElementById('verdict-badge'),
       verdictDesc: document.getElementById('verdict-desc'),
-      cmpWinner: document.getElementById('compare-live-winner')
+      cmpWinner: document.getElementById('compare-live-winner'),
+      // Live SVG Blueprint Nodes
+      svgCabTxt: document.getElementById('svg-cab-cargo-txt'),
+      svgTongueTxt: document.getElementById('svg-tongue-txt'),
+      svgTrailerTxt: document.getElementById('svg-trailer-txt'),
+      svgSquatBadge: document.getElementById('svg-squat-badge'),
+      svgHitchGroup: document.getElementById('svg-hitch-group'),
+      svgTongueRect: document.getElementById('svg-tongue-pill')
     };
 
     const params = new URLSearchParams(window.location.search);
@@ -74,6 +180,22 @@
     if (params.has('pax')) inputPassengers.value = params.get('pax');
     if (params.has('cargo')) inputCargo.value = params.get('cargo');
     if (params.has('hitch')) inputHitch.value = params.get('hitch');
+    if (params.has('door') && inputCustomPayload) {
+      const customVal = Number(params.get('door'));
+      if (customVal >= 400 && customVal <= 9000) {
+        inputCustomPayload.value = String(customVal);
+        activeMaxPayload = customVal;
+      }
+    }
+
+    function updateRangeProgressFallback(slider) {
+      if (supportsAccentColor || !slider || slider.type !== 'range') return;
+      const min = Number(slider.min || 0);
+      const max = Number(slider.max || 100);
+      const val = Number(slider.value || 0);
+      const pct = Math.round(((val - min) / Math.max(1, max - min)) * 100);
+      slider.style.setProperty('--progress', pct + '%');
+    }
 
     function setGauge(bar, txt, pct, usedText) {
       if (bar) {
@@ -104,10 +226,10 @@
       const combinedWeight = curbWeight + passengersLbs + cargoLbs + hitchLbs + trailerLbs;
 
       const towPct = Math.round((trailerLbs / maxTow) * 100);
-      const payloadPct = Math.round((payloadUsed / maxPayload) * 100);
+      const payloadPct = Math.round((payloadUsed / activeMaxPayload) * 100);
       const gcwrPct = Math.round((combinedWeight / gcwr) * 100);
 
-      const payloadMargin = maxPayload - payloadUsed;
+      const payloadMargin = activeMaxPayload - payloadUsed;
       const towMargin = maxTow - trailerLbs;
 
       setGauge(
@@ -120,7 +242,7 @@
         dom.barPayload,
         dom.txtPayload,
         payloadPct,
-        fmtNum.format(payloadUsed) + ' / ' + fmtNum.format(maxPayload) + ' lbs (' + payloadPct + '%)'
+        fmtNum.format(payloadUsed) + ' / ' + fmtNum.format(activeMaxPayload) + ' lbs (' + payloadPct + '%)'
       );
       setGauge(
         dom.barGcwr,
@@ -128,6 +250,37 @@
         gcwrPct,
         fmtNum.format(combinedWeight) + ' / ' + fmtNum.format(gcwr) + ' lbs (' + gcwrPct + '%)'
       );
+
+      // Update Live SVG Rig Blueprint
+      if (dom.svgCabTxt) {
+        dom.svgCabTxt.textContent =
+          'Cab+Bed: ' + fmtNum.format(passengersLbs + cargoLbs) + ' lbs';
+      }
+      if (dom.svgTongueTxt) {
+        dom.svgTongueTxt.textContent =
+          'Tongue: ' + fmtNum.format(tongueLbs) + ' lbs (' + tonguePct + '%)';
+      }
+      if (dom.svgTrailerTxt) {
+        dom.svgTrailerTxt.textContent =
+          'Trailer GTW: ' + fmtNum.format(trailerLbs) + ' lbs';
+      }
+      if (dom.svgHitchGroup) {
+        // Visual rear axle squat deflection (0px at <=50%, up to +7px dip when overloaded)
+        const squatPx = Math.max(0, Math.min(8, Math.round(((payloadPct - 45) / 65) * 7)));
+        dom.svgHitchGroup.setAttribute('transform', 'translate(0, ' + squatPx + ')');
+      }
+      if (dom.svgSquatBadge && dom.svgTongueRect) {
+        if (payloadPct > 100) {
+          dom.svgSquatBadge.textContent = 'REAR AXLE OVERLOADED (' + payloadPct + '% PAYLOAD)';
+          dom.svgTongueRect.setAttribute('fill', '#dc2626');
+        } else if (payloadPct >= 85) {
+          dom.svgSquatBadge.textContent = 'HEAVY SQUAT — WDH + SWAY BAR MANDATORY (' + payloadPct + '%)';
+          dom.svgTongueRect.setAttribute('fill', '#ca8a04');
+        } else {
+          dom.svgSquatBadge.textContent = 'LEVEL STANCE — ' + fmtNum.format(payloadMargin) + ' LBS PAYLOAD RESERVE';
+          dom.svgTongueRect.setAttribute('fill', '#16a34a');
+        }
+      }
 
       if (dom.outTongue) dom.outTongue.textContent = fmtNum.format(tongueLbs) + ' lbs';
       if (dom.outPayloadRem) {
@@ -138,7 +291,7 @@
         dom.outTowRem.textContent = (towMargin >= 0 ? '+' : '') + fmtNum.format(towMargin) + ' lbs';
       }
 
-      const availablePayloadForTongue = Math.max(0, maxPayload - (passengersLbs + cargoLbs + hitchLbs));
+      const availablePayloadForTongue = Math.max(0, activeMaxPayload - (passengersLbs + cargoLbs + hitchLbs));
       const payloadLimitedTrailer = Math.floor(availablePayloadForTongue / (tonguePct / 100));
       const trueSafeMaxTrailer = Math.min(maxTow, payloadLimitedTrailer);
       if (dom.outMaxSafeTrailer) {
@@ -162,8 +315,8 @@
               fmtNum.format(tongueLbs) +
               ' lb tongue weight + ' +
               fmtNum.format(passengersLbs + cargoLbs + hitchLbs) +
-              ' lbs of cab/bed load exceeds the ' +
-              fmtNum.format(maxPayload) +
+              ' lbs of cab/bed load exceeds your ' +
+              fmtNum.format(activeMaxPayload) +
               ' lb payload limit. With your current cargo, your real-world max trailer weight is ' +
               fmtNum.format(trueSafeMaxTrailer) +
               ' lbs.';
@@ -227,13 +380,13 @@
         );
 
         if (dom.cmpWinner) {
-          const marginA = Math.min(maxPayload - payloadUsed, maxTow - trailerLbs);
+          const marginA = Math.min(activeMaxPayload - payloadUsed, maxTow - trailerLbs);
           const marginB = Math.min(maxPayloadB - payloadUsed, maxTowB - trailerLbs);
           if (marginA > marginB) {
             dom.cmpWinner.textContent =
               vehicleName +
               ' wins for this load (+' +
-              fmtNum.format(maxPayload - payloadUsed) +
+              fmtNum.format(activeMaxPayload - payloadUsed) +
               ' lbs payload margin vs ' +
               fmtNum.format(maxPayloadB - payloadUsed) +
               ' lbs)';
@@ -243,7 +396,7 @@
               ' wins for this load (+' +
               fmtNum.format(maxPayloadB - payloadUsed) +
               ' lbs payload margin vs ' +
-              fmtNum.format(maxPayload - payloadUsed) +
+              fmtNum.format(activeMaxPayload - payloadUsed) +
               ' lbs)';
           } else {
             dom.cmpWinner.textContent = 'Tie for this exact load configuration';
@@ -253,8 +406,60 @@
     }
 
     [inputTrailer, inputTonguePct, inputPassengers, inputCargo, inputHitch].forEach((el) => {
-      el.addEventListener('input', computeRig);
+      updateRangeProgressFallback(el);
+      el.addEventListener('input', () => {
+        updateRangeProgressFallback(el);
+        computeRig();
+      });
     });
+
+    // Door-Jamb Sticker Custom Payload Validation (Validate on blur, clear error on input per forms guide)
+    if (inputCustomPayload) {
+      let edited = false;
+
+      inputCustomPayload.addEventListener('input', () => {
+        edited = true;
+        inputCustomPayload.setCustomValidity('');
+        inputCustomPayload.removeAttribute('aria-invalid');
+        if (payloadErr) payloadErr.textContent = '';
+
+        const raw = inputCustomPayload.value.trim();
+        if (!raw) {
+          activeMaxPayload = factoryMaxPayload;
+          computeRig();
+          return;
+        }
+        const num = Number(raw);
+        if (!Number.isNaN(num) && num >= 400 && num <= 9000) {
+          activeMaxPayload = num;
+          computeRig();
+        }
+      });
+
+      inputCustomPayload.addEventListener('blur', () => {
+        if (!edited) return;
+        const raw = inputCustomPayload.value.trim();
+        if (!raw) return;
+        const num = Number(raw);
+        if (Number.isNaN(num) || num < 400 || num > 9000) {
+          const msg = 'Enter a door-jamb payload between 400 and 9,000 lbs.';
+          inputCustomPayload.setCustomValidity(msg);
+          inputCustomPayload.setAttribute('aria-invalid', 'true');
+          if (payloadErr) payloadErr.textContent = msg;
+        }
+      });
+
+      if (btnResetPayload) {
+        btnResetPayload.addEventListener('click', () => {
+          inputCustomPayload.value = '';
+          inputCustomPayload.setCustomValidity('');
+          inputCustomPayload.removeAttribute('aria-invalid');
+          if (payloadErr) payloadErr.textContent = '';
+          activeMaxPayload = factoryMaxPayload;
+          computeRig();
+        });
+      }
+    }
 
     document.querySelectorAll('[data-preset-trailer]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -262,6 +467,8 @@
         if (btn.dataset.presetTongue) {
           inputTonguePct.value = btn.dataset.presetTongue;
         }
+        updateRangeProgressFallback(inputTrailer);
+        updateRangeProgressFallback(inputTonguePct);
         computeRig();
       });
     });
@@ -275,6 +482,9 @@
         url.searchParams.set('pax', inputPassengers.value);
         url.searchParams.set('cargo', inputCargo.value);
         url.searchParams.set('hitch', inputHitch.value);
+        if (inputCustomPayload && inputCustomPayload.value.trim()) {
+          url.searchParams.set('door', inputCustomPayload.value.trim());
+        }
         window.history.replaceState({}, '', url.toString());
         if (navigator.clipboard) {
           navigator.clipboard.writeText(url.toString());
@@ -286,11 +496,18 @@
       });
     }
 
+    const printBtn = document.getElementById('btn-print-worksheet');
+    if (printBtn) {
+      printBtn.addEventListener('click', () => {
+        window.print();
+      });
+    }
+
     computeRig();
   }
 
   // =========================================================================
-  // 2. MODERN ACCESSIBLE SORTABLE DATA TABLES (sortable-table & dynamic-sort)
+  // 4. MODERN ACCESSIBLE SORTABLE DATA TABLES (sortable-table & dynamic-sort)
   // =========================================================================
   function reorderRows(tbody, orderedRows) {
     const move = Object.hasOwn(Element.prototype, 'moveBefore')
@@ -381,10 +598,11 @@
   }
 
   // =========================================================================
-  // 3. HOMEPAGE INSTANT DIRECTORY FILTER (Pre-Indexed Row Cache for <1ms INP)
+  // 5. HOMEPAGE INSTANT DIRECTORY FILTER (Pre-Indexed Row Cache for <1ms INP)
   // =========================================================================
   function initDirectoryFilter() {
     const searchInput = document.getElementById('filter-search');
+    const yearSelect = document.getElementById('filter-year');
     const brandSelect = document.getElementById('filter-brand');
     const minTowSelect = document.getElementById('filter-min-tow');
     const minPayloadSelect = document.getElementById('filter-min-payload');
@@ -395,9 +613,9 @@
     const tbody = table.tBodies[0];
     if (!tbody) return;
 
-    // Pre-cache row metadata once so filtering never reads textContent or parses numbers on keystrokes
     const indexedRows = [...tbody.rows].map((row) => ({
       row,
+      year: row.dataset.year || '',
       brand: row.dataset.brand || '',
       tow: Number(row.dataset.tow || 0),
       payload: Number(row.dataset.payload || 0),
@@ -406,6 +624,7 @@
 
     function applyFilter() {
       const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
+      const year = yearSelect ? yearSelect.value : '';
       const brand = brandSelect ? brandSelect.value : '';
       const minTow = minTowSelect ? Number(minTowSelect.value) : 0;
       const minPayload = minPayloadSelect ? Number(minPayloadSelect.value) : 0;
@@ -415,6 +634,7 @@
         const item = indexedRows[i];
         const show =
           (!q || item.searchText.includes(q)) &&
+          (!year || item.year === year) &&
           (!brand || item.brand === brand) &&
           item.tow >= minTow &&
           item.payload >= minPayload;
@@ -430,13 +650,13 @@
       }
     }
 
-    [searchInput, brandSelect, minTowSelect, minPayloadSelect].forEach((el) => {
+    [searchInput, yearSelect, brandSelect, minTowSelect, minPayloadSelect].forEach((el) => {
       if (el) el.addEventListener('input', applyFilter);
     });
   }
 
   // =========================================================================
-  // 4. ACTIVE-VIEW AD REFRESH & HIGH-RPM TELEMETRY ENGINE
+  // 6. ACTIVE-VIEW AD REFRESH & HIGH-RPM TELEMETRY ENGINE
   // =========================================================================
   const AD_CREATIVES = [
     {
@@ -569,6 +789,8 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    initThemeToggle();
+    initQuickJumpSearch();
     initRigCalculator();
     initSortableTables();
     initDirectoryFilter();

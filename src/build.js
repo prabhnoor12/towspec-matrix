@@ -15,7 +15,6 @@ const trailers = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'trailers.json')
 const rawCss = fs.readFileSync(path.join(SRC_DIR, 'styles.css'), 'utf8');
 const rawJs = fs.readFileSync(path.join(SRC_DIR, 'app.js'), 'utf8');
 
-// Zero-dependency build-time CSS minifier for inlined critical <head> styles
 function minifyCss(css) {
   return css
     .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -25,7 +24,6 @@ function minifyCss(css) {
     .trim();
 }
 
-// Zero-dependency build-time JS minifier (strips single-line comments and excess blank lines)
 function minifyJs(js) {
   return js
     .split('\n')
@@ -40,6 +38,12 @@ const jsHash = crypto.createHash('sha256').update(minifiedJs).digest('hex').slic
 const hashedJsFilename = `app.${jsHash}.js`;
 
 const fmt = new Intl.NumberFormat('en-US');
+
+// Pre-build a compact global datalist for the header Quick-Jump <search> bar
+const quickJumpOptionsHtml = vehicles
+  .filter((v) => v.year === 2024 || v.year === 2025 || v.year === 2020 || v.year === 2018)
+  .map((v) => `<option value="${v.year} ${v.brand} ${v.model} (${v.trim})" data-slug="${v.slug}"></option>`)
+  .join('');
 
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
@@ -65,6 +69,63 @@ function calcRealWorldMaxTrailer(v, assumedCabinAndHitchLbs = 550, tongueRatio =
   const availForTongue = Math.max(0, v.maxPayloadLbs - assumedCabinAndHitchLbs);
   const payloadCapped = Math.floor(availForTongue / tongueRatio);
   return Math.min(v.maxTowLbs, payloadCapped);
+}
+
+// Live SVG Truck + Trailer Rig Blueprint Visualizer
+function renderRigBlueprintSvg(v, defaultTrailer, defaultTongueLbs) {
+  return `
+  <div class="rig-schematic-box" aria-label="Live Rig Weight & Squat Visualizer">
+    <svg class="rig-svg" viewBox="0 0 760 130" role="img" aria-labelledby="rig-svg-title">
+      <title id="rig-svg-title">Dynamic Tow Vehicle, Tongue Downforce, and Trailer Axle Load Schematic</title>
+      <!-- Ground Line -->
+      <line x1="15" y1="114" x2="745" y2="114" stroke="#64748b" stroke-width="2" stroke-dasharray="6 4"/>
+      
+      <!-- TOW VEHICLE SILHOUETTE -->
+      <g>
+        <path d="M40 88 L40 58 L95 56 L128 32 L215 32 L215 58 L285 58 L285 88 Z" fill="#1e3a8a" stroke="#38bdf8" stroke-width="2"/>
+        <rect x="134" y="37" width="35" height="18" fill="#93c5fd" opacity="0.8"/>
+        <rect x="175" y="37" width="32" height="18" fill="#93c5fd" opacity="0.8"/>
+        <!-- Cab + Bed Load Label -->
+        <rect x="108" y="64" width="166" height="20" rx="3" fill="#0f172a"/>
+        <text id="svg-cab-cargo-txt" x="191" y="78" fill="#f8fafc" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle">Cab+Bed: 500 lbs</text>
+        <!-- Wheels -->
+        <circle cx="88" cy="96" r="17" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
+        <circle cx="242" cy="96" r="17" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
+      </g>
+
+      <!-- DYNAMIC HITCH & TONGUE DOWNFORCE GROUP (Dips with Payload %) -->
+      <g id="svg-hitch-group" transform="translate(0, 2)">
+        <line x1="285" y1="84" x2="365" y2="84" stroke="#f59e0b" stroke-width="5"/>
+        <circle cx="322" cy="84" r="6" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>
+        <!-- Downforce Vector Arrow -->
+        <line x1="322" y1="36" x2="322" y2="74" stroke="#ef4444" stroke-width="3"/>
+        <polygon points="315,71 329,71 322,80" fill="#ef4444"/>
+        <rect id="svg-tongue-pill" x="255" y="12" width="142" height="22" rx="3" fill="#16a34a"/>
+        <text id="svg-tongue-txt" x="326" y="27" fill="#ffffff" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle">Tongue: ${fmt.format(defaultTongueLbs)} lbs</text>
+      </g>
+
+      <!-- TRAVEL TRAILER SILHOUETTE -->
+      <g>
+        <rect x="365" y="24" width="245" height="66" rx="8" fill="#334155" stroke="#94a3b8" stroke-width="2"/>
+        <rect x="385" y="36" width="44" height="22" rx="2" fill="#bae6fd" opacity="0.75"/>
+        <rect x="530" y="36" width="52" height="22" rx="2" fill="#bae6fd" opacity="0.75"/>
+        <rect x="415" y="64" width="155" height="20" rx="3" fill="#0f172a"/>
+        <text id="svg-trailer-txt" x="492" y="78" fill="#38bdf8" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle">Trailer GTW: ${fmt.format(defaultTrailer)} lbs</text>
+        <!-- Tandem Trailer Axles -->
+        <circle cx="478" cy="96" r="16" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
+        <circle cx="518" cy="96" r="16" fill="#1e293b" stroke="#94a3b8" stroke-width="4"/>
+      </g>
+
+      <!-- Live Stance Status Banner inside SVG -->
+      <rect x="622" y="34" width="128" height="52" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="686" y="52" fill="#94a3b8" font-family="monospace" font-size="9.5" text-anchor="middle">GVWR RATING</text>
+      <text x="686" y="72" fill="#f8fafc" font-family="monospace" font-size="13" font-weight="bold" text-anchor="middle">${fmt.format(v.gvwrLbs)} LBS</text>
+    </svg>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;font-family:var(--font-mono);font-size:0.75rem;margin-block-start:0.35rem;color:var(--text-muted);">
+      <span>STANCE TELEMETRY: <strong id="svg-squat-badge" style="color:var(--text);">LEVEL STANCE</strong></span>
+      <span>Curb: ${fmt.format(v.curbWeightLbs)} lbs • Factory Max Payload: ${fmt.format(v.maxPayloadLbs)} lbs</span>
+    </div>
+  </div>`;
 }
 
 function renderAdUnit(slotType, slotId, initialCreativeIdx = 0) {
@@ -147,8 +208,7 @@ function renderAdUnit(slotType, slotId, initialCreativeIdx = 0) {
   </aside>`;
 }
 
-// Base HTML Shell with Inlined Minified CSS, <link rel="expect">, Speculation Rules API & Fingerprinted JS
-function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJson, mainContent, sidebarLinks = [] }) {
+function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJson, mainContent, sidebarLinks = [], totalPagesCount = 2000 }) {
   const canonicalUrl = canonicalPath ? `${SITE_URL}/${canonicalPath.replace(/^\/+|\/+$/g, '')}/` : `${SITE_URL}/`;
 
   const breadcrumbHtml = breadcrumbs && breadcrumbs.length
@@ -180,7 +240,6 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
 
   const schemas = [breadcrumbSchema, ...(Array.isArray(schemaJson) ? schemaJson : schemaJson ? [schemaJson] : [])].filter(Boolean);
 
-  // Speculation Rules API for instant next-page MPA navigation (improve-next-page-load-performance)
   const speculationRulesJson = JSON.stringify({
     prefetch: [
       {
@@ -207,6 +266,8 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <script>try{document.querySelector('meta[name="color-scheme"]').content=localStorage.getItem("color-scheme")??"light dark"}catch(e){}</script>
   <title>${title}</title>
   <meta name="description" content="${description}">
   <link rel="canonical" href="${canonicalUrl}">
@@ -220,12 +281,12 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
 <body>
   <div class="adops-bar" role="region" aria-label="Publisher Ad-Ops Telemetry">
     <div class="adops-inner">
-      <div><strong>AD-OPS ENGINE:</strong> Prebid + Active-View 35s Refresh • Speculation Rules MPA</div>
+      <div><strong>AD-OPS ENGINE:</strong> ${fmt.format(totalPagesCount)} Programmatic Pages • Prebid Active-View 35s Refresh</div>
       <div class="adops-metrics">
         <span class="adops-pill live-dot">Status: <strong id="hud-view-state">ACTIVE VIEW (TIMER RUNNING)</strong></span>
-        <span class="adops-pill">Session Impressions: <strong id="hud-impressions">4</strong></span>
-        <span class="adops-pill">Effective RPM: <strong>$64.50</strong></span>
-        <span class="adops-pill">Est. Session Yield: <strong id="hud-revenue">$0.26</strong></span>
+        <span class="adops-pill">Impressions: <strong id="hud-impressions">4</strong></span>
+        <span class="adops-pill">RPM: <strong>$64.50</strong></span>
+        <span class="adops-pill">Session Yield: <strong id="hud-revenue">$0.26</strong></span>
       </div>
     </div>
   </div>
@@ -234,18 +295,27 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
     <div class="header-inner">
       <a href="/" class="brand-logo">
         <span>TOWSPECMATRIX</span>
-        <span class="brand-badge">SAE J2807 DATABASE</span>
+        <span class="brand-badge">2015–2026 SAE J2807</span>
       </a>
-      <nav class="site-nav" aria-label="Primary Navigation">
-        <a href="/">All Vehicles (${vehicles.length})</a>
-        <a href="/trailers/5000-lb-single-axle-travel-trailers/">5,000 lb Campers</a>
-        <a href="/trailers/8000-lb-full-size-travel-trailers/">8,000 lb Trailers</a>
-        <a href="/trailers/13000-lb-mid-profile-fifth-wheels/">13,000 lb 5th-Wheels</a>
-        <a href="/brands/ford/">Ford</a>
-        <a href="/brands/chevrolet/">Chevy</a>
-        <a href="/brands/toyota/">Toyota</a>
-        <a href="/brands/ram/">Ram</a>
-      </nav>
+      <div class="header-tools">
+        <search class="quick-search-box" aria-label="Quick Jump to Any Vehicle">
+          <label for="global-vehicle-jump" class="visually-hidden">Quick jump to truck or SUV</label>
+          <input type="search" id="global-vehicle-jump" list="global-vehicle-datalist" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="go" placeholder="⚡ Quick Jump: Type truck/SUV...">
+          <datalist id="global-vehicle-datalist">${quickJumpOptionsHtml}</datalist>
+        </search>
+        <nav class="site-nav" aria-label="Primary Navigation">
+          <a href="/">All (${vehicles.length})</a>
+          <a href="/years/2025/">2025</a>
+          <a href="/years/2024/">2024</a>
+          <a href="/years/2021/">2021</a>
+          <a href="/years/2018/">2018</a>
+          <a href="/trailers/8000-lb-full-size-travel-trailers/">8K Campers</a>
+          <a href="/brands/ford/">Ford</a>
+          <a href="/brands/chevrolet/">Chevy</a>
+          <a href="/brands/toyota/">Toyota</a>
+          <button type="button" id="theme-toggle-btn" class="theme-btn" aria-label="Switch color scheme">☾ Dark</button>
+        </nav>
+      </div>
     </div>
   </header>
 
@@ -263,8 +333,14 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
     <aside class="ad-rail-sticky" aria-label="Sidebar Calculations & Sponsored Units">
       ${renderAdUnit('skyscraper', 'sidebar-skyscraper', 1)}
       <div class="panel" style="margin:0;">
+        <h3 style="margin-block-start:0;">Browse by Model Year</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-block-end:0.85rem;">
+          ${[2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015]
+            .map((y) => `<a href="/years/${y}/" class="year-pill">${y}</a>`)
+            .join('')}
+        </div>
         <h3 style="margin-block-start:0;">High-Intent Trailer Brackets</h3>
-        <ul style="padding-inline-start:1.1rem;margin:0;font-size:0.84rem;display:grid;gap:0.35rem;">
+        <ul style="padding-inline-start:1.1rem;margin:0;font-size:0.82rem;display:grid;gap:0.35rem;">
           ${trailers
             .map(
               (t) =>
@@ -274,8 +350,8 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
         </ul>
         ${
           sidebarLinks.length
-            ? `<h3 style="margin-block-start:1rem;">Related Matrix Comparisons</h3>
-               <ul style="padding-inline-start:1.1rem;margin:0;font-size:0.82rem;display:grid;gap:0.35rem;">
+            ? `<h3 style="margin-block-start:1rem;">Direct Rival Matchups</h3>
+               <ul style="padding-inline-start:1.1rem;margin:0;font-size:0.8rem;display:grid;gap:0.35rem;">
                  ${sidebarLinks.map((l) => `<li><a href="${l.url}">${l.label}</a></li>`).join('')}
                </ul>`
             : ''
@@ -287,11 +363,11 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
   <footer class="site-footer">
     <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;">
       <div>
-        <strong>${SITE_NAME} — Programmatic SAE J2807 Towing, Payload & GVWR Reference Matrix</strong>
-        <p style="margin:0.35rem 0 0;">Built with 100% Pure Static HTML, Zero-CLS CSS Containment, Speculation Rules Prerendering, and Client-Side Vanilla JS. Always verify your specific VIN door-jamb sticker before towing.</p>
+        <strong>${SITE_NAME} — 2015–2026 Programmatic SAE J2807 Towing, Payload & GVWR Matrix</strong>
+        <p style="margin:0.35rem 0 0;">Built with 100% Pure Static HTML, Zero-CLS CSS Containment, Speculation Rules Prerendering, and Client-Side Vanilla JS. Always verify your specific VIN yellow door-jamb sticker before towing.</p>
       </div>
       <div style="font-family:var(--font-mono);font-size:0.76rem;">
-        <div>Total Indexed Matrix Pages: <strong>171 Static HTML Endpoints</strong></div>
+        <div>Total Indexed Matrix Pages: <strong>${fmt.format(totalPagesCount)} Static HTML Endpoints</strong></div>
         <div><a href="/sitemap.xml">XML Sitemap</a> • <a href="/">Master Directory</a></div>
       </div>
     </div>
@@ -304,17 +380,36 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
 </html>`;
 }
 
+// Generate 1,500+ Head-to-Head Comparison Pairs (Same-year category rivals + cross-year evolution)
 function generateComparisonPairs() {
   const pairs = [];
   const seen = new Set();
 
   for (const v of vehicles) {
-    const rivals = vehicles
-      .filter((other) => other.slug !== v.slug && other.category === v.category && other.brand !== v.brand)
+    // 1. Top 3 closest same-year, same-category rivals from competing brands
+    const sameYearRivals = vehicles
+      .filter(
+        (other) =>
+          other.slug !== v.slug &&
+          other.year === v.year &&
+          other.category === v.category &&
+          other.brand !== v.brand
+      )
       .sort((a, b) => Math.abs(a.maxTowLbs - v.maxTowLbs) - Math.abs(b.maxTowLbs - v.maxTowLbs))
-      .slice(0, 2);
+      .slice(0, 3);
 
-    for (const r of rivals) {
+    // 2. Same-year sibling engine comparison (e.g. F-150 3.5L EcoBoost vs F-150 5.0L V8)
+    const sameBrandSibling = vehicles
+      .filter(
+        (other) =>
+          other.slug !== v.slug &&
+          other.year === v.year &&
+          other.brand === v.brand &&
+          other.model === v.model
+      )
+      .slice(0, 1);
+
+    for (const r of [...sameYearRivals, ...sameBrandSibling]) {
       const sortedSlugs = [v.slug, r.slug].sort();
       const key = sortedSlugs.join('__');
       if (!seen.has(key)) {
@@ -330,19 +425,28 @@ function generateComparisonPairs() {
   return pairs;
 }
 
-function buildVehiclePages(comparisonPairs, sitemapUrls) {
+function buildVehiclePages(comparisonPairs, sitemapUrls, totalPagesCount) {
   for (const v of vehicles) {
     const fullTitle = `${v.year} ${v.brand} ${v.model} (${v.trim})`;
     const realMaxTrailer = calcRealWorldMaxTrailer(v, 550, 0.13);
     const defaultTrailer = Math.round(Math.min(v.maxTowLbs * 0.75, 7500) / 100) * 100;
+    const defaultTongueLbs = Math.round(defaultTrailer * 0.13);
+
+    // Find all model years (2015-2026) of this exact vehicle trim for the Year Switcher Bar
+    const modelYearHistory = vehicles
+      .filter((other) => other.brand === v.brand && other.model === v.model && other.trim === v.trim)
+      .sort((a, b) => b.year - a.year);
 
     const myComparisons = comparisonPairs
       .filter((p) => p.a.slug === v.slug || p.b.slug === v.slug)
+      .slice(0, 8);
+
+    const brandSiblings = vehicles
+      .filter((other) => other.brand === v.brand && other.year === v.year && other.slug !== v.slug)
       .slice(0, 6);
 
-    const brandSiblings = vehicles.filter((other) => other.brand === v.brand && other.slug !== v.slug);
     const categoryPeers = vehicles
-      .filter((other) => other.category === v.category && other.slug !== v.slug)
+      .filter((other) => other.category === v.category && other.year === v.year && other.slug !== v.slug)
       .slice(0, 8);
 
     const faqSchema = {
@@ -371,11 +475,27 @@ function buildVehiclePages(comparisonPairs, sitemapUrls) {
     const mainContent = `
       <article id="hero-panel" class="panel isolated-widget">
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:0.5rem;margin-block-end:0.35rem;">
-          <span class="brand-badge">${v.category} • ${v.drivetrain} • ${v.axleRatio} Axle</span>
+          <span class="brand-badge">${v.year} MODEL YEAR • ${v.category} • ${v.drivetrain} • ${v.axleRatio} Axle</span>
           <span style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);">Engine: ${v.engine} (${v.horsepower} HP / ${v.torqueLbFt} lb-ft)</span>
         </div>
         <h1>${fullTitle} Towing Capacity, Payload & GVWR Matrix</h1>
         <p class="subtitle">Instant SAE J2807 towing vs. payload bottleneck analyzer. Test real-world camper tongue weight, passengers, and bed cargo against factory GVWR (${fmt.format(v.gvwrLbs)} lbs) and GCWR (${fmt.format(v.gcwrLbs)} lbs) ceilings.</p>
+
+        ${
+          modelYearHistory.length > 1
+            ? `<div class="year-pill-bar" role="navigation" aria-label="Switch Model Year for ${v.brand} ${v.model}">
+                 <strong style="font-family:var(--font-mono);font-size:0.74rem;margin-inline-end:0.25rem;">MODEL YEARS:</strong>
+                 ${modelYearHistory
+                   .map(
+                     (ym) =>
+                       `<a href="/towing/${ym.slug}/" class="year-pill ${ym.year === v.year ? 'active' : ''}" ${
+                         ym.year === v.year ? 'aria-current="page"' : ''
+                       }>${ym.year}</a>`
+                   )
+                   .join('')}
+               </div>`
+            : ''
+        }
 
         <div class="spec-kpi-grid">
           <div class="kpi-box highlight">
@@ -408,11 +528,29 @@ function buildVehiclePages(comparisonPairs, sitemapUrls) {
         data-gcwr="${v.gcwrLbs}"
         data-curb-weight="${v.curbWeightLbs}"
         data-vehicle-name="${fullTitle}">
-        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:0.5rem;">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:0.5rem;margin-block-end:0.5rem;">
           <h2 style="border:none;margin:0;padding:0;">Interactive Rig, Tongue Weight & Payload Simulator</h2>
-          <button type="button" id="btn-copy-rig-link" class="preset-btn">Copy Shareable Rig Link</button>
+          <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
+            <button type="button" id="btn-copy-rig-link" class="preset-btn">Copy Shareable Rig Link</button>
+            <button type="button" id="btn-print-worksheet" class="preset-btn">⎙ Print Rig Worksheet</button>
+          </div>
         </div>
-        <p class="subtitle" style="margin-block-top:0.25rem;">Click a camper preset or drag the sliders to test whether you hit the <strong>Payload limit</strong> before the <strong>Max Tow limit</strong>:</p>
+
+        <!-- Custom Yellow Door-Jamb Payload Sticker Override Bar -->
+        <div class="door-sticker-bar">
+          <div>
+            <strong>YELLOW DOOR-JAMB STICKER OVERRIDE:</strong> Have your truck's driver-door payload sticker? Enter your exact VIN payload (lbs):
+            <div id="door-payload-error" role="status" style="color:var(--danger-text);font-weight:700;font-size:0.76rem;"></div>
+          </div>
+          <div class="door-sticker-controls">
+            <label for="input-custom-payload" class="visually-hidden">Custom door-jamb payload in lbs</label>
+            <input type="text" id="input-custom-payload" name="door_payload" inputmode="numeric" pattern="[0-9]*" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" placeholder="${v.maxPayloadLbs}">
+            <button type="button" id="btn-reset-payload" class="preset-btn">Reset (${fmt.format(v.maxPayloadLbs)} lbs)</button>
+          </div>
+        </div>
+
+        <!-- Live Interactive SVG Truck + Trailer Blueprint -->
+        ${renderRigBlueprintSvg(v, defaultTrailer, defaultTongueLbs)}
 
         <div class="preset-pills" role="group" aria-label="Quick Trailer Weight Presets">
           <button type="button" class="preset-btn" data-preset-trailer="3500" data-preset-tongue="12">3,500 lb Pop-Up (12%)</button>
@@ -589,7 +727,7 @@ function buildVehiclePages(comparisonPairs, sitemapUrls) {
             .map((p) => {
               const rival = p.a.slug === v.slug ? p.b : p.a;
               return `<a href="/compare/${p.slug}/" class="cluster-card">
-                <span class="cluster-card-title">${v.brand} ${v.model} vs. ${rival.year} ${rival.brand} ${rival.model}</span>
+                <span class="cluster-card-title">${v.year} ${v.brand} ${v.model} vs. ${rival.year} ${rival.brand} ${rival.model}</span>
                 <span class="cluster-card-meta">${fmt.format(v.maxTowLbs)} vs ${fmt.format(rival.maxTowLbs)} lbs Tow • ${fmt.format(v.maxPayloadLbs)} vs ${fmt.format(rival.maxPayloadLbs)} lbs Payload</span>
               </a>`;
             })
@@ -598,7 +736,7 @@ function buildVehiclePages(comparisonPairs, sitemapUrls) {
 
         ${
           brandSiblings.length
-            ? `<h3>More ${v.brand} Towing & Payload Specs</h3>
+            ? `<h3>More ${v.year} ${v.brand} Towing & Payload Specs</h3>
                <div class="link-cluster-grid">
                  ${brandSiblings
                    .map(
@@ -612,7 +750,7 @@ function buildVehiclePages(comparisonPairs, sitemapUrls) {
             : ''
         }
 
-        <h3>Alternative ${v.category}s to Compare</h3>
+        <h3>Alternative ${v.year} ${v.category}s to Compare</h3>
         <div class="link-cluster-grid">
           ${categoryPeers
             .map(
@@ -643,6 +781,7 @@ Payload-Limited Max Trailer Weight  = Available Payload for Tongue Weight ÷ 0.1
       canonicalPath: `towing/${v.slug}`,
       breadcrumbs: [
         { label: 'Home', url: '/' },
+        { label: `${v.year} Models`, url: `/years/${v.year}/` },
         { label: v.brand, url: `/brands/${slugify(v.brand)}/` },
         { label: `${v.year} ${v.model} (${v.trim})`, url: `/towing/${v.slug}/` }
       ],
@@ -650,15 +789,16 @@ Payload-Limited Max Trailer Weight  = Available Payload for Tongue Weight ÷ 0.1
       mainContent,
       sidebarLinks: myComparisons.map((p) => ({
         url: `/compare/${p.slug}/`,
-        label: `${v.model} vs ${(p.a.slug === v.slug ? p.b : p.a).brand} ${(p.a.slug === v.slug ? p.b : p.a).model}`
-      }))
+        label: `${v.year} ${v.model} vs ${(p.a.slug === v.slug ? p.b : p.a).brand} ${(p.a.slug === v.slug ? p.b : p.a).model}`
+      })),
+      totalPagesCount
     });
 
     writePage(`towing/${v.slug}`, html, sitemapUrls);
   }
 }
 
-function buildComparisonPages(comparisonPairs, sitemapUrls) {
+function buildComparisonPages(comparisonPairs, sitemapUrls, totalPagesCount) {
   for (const pair of comparisonPairs) {
     const { a, b, slug } = pair;
     const titleA = `${a.year} ${a.brand} ${a.model}`;
@@ -880,22 +1020,25 @@ function buildComparisonPages(comparisonPairs, sitemapUrls) {
       canonicalPath: `compare/${slug}`,
       breadcrumbs: [
         { label: 'Home', url: '/' },
-        { label: `${a.brand} vs ${b.brand}`, url: `/compare/${slug}/` }
+        { label: `${a.year} Comparisons`, url: `/years/${a.year}/` },
+        { label: `${titleA} vs ${titleB}`, url: `/compare/${slug}/` }
       ],
       schemaJson: null,
-      mainContent
+      mainContent,
+      totalPagesCount
     });
 
     writePage(`compare/${slug}`, html, sitemapUrls);
   }
 }
 
-function buildTrailerClassPages(sitemapUrls) {
+function buildTrailerClassPages(sitemapUrls, totalPagesCount) {
   for (const t of trailers) {
     const assumedCabAndHitch = 585;
     const totalRequiredPayload = assumedCabAndHitch + t.tongueWeightLbs;
 
     const rankedVehicles = vehicles
+      .filter((v) => v.year >= 2020)
       .map((v) => {
         const payloadMargin = v.maxPayloadLbs - totalRequiredPayload;
         const towMargin = v.maxTowLbs - t.weightLbs;
@@ -939,7 +1082,7 @@ function buildTrailerClassPages(sitemapUrls) {
           </div>
           <div class="kpi-box">
             <span class="kpi-label">Compatible Vehicles</span>
-            <span class="kpi-value">${safeCount} / ${vehicles.length}</span>
+            <span class="kpi-value">${safeCount} / ${rankedVehicles.length}</span>
             <span class="kpi-sub">Pass Both Tow & Payload</span>
           </div>
         </div>
@@ -948,7 +1091,7 @@ function buildTrailerClassPages(sitemapUrls) {
       ${renderAdUnit('midtool', 'trailer-hub-mid-ad', 1)}
 
       <section class="panel">
-        <h2>All ${vehicles.length} Trucks & SUVs Ranked for Towing a ${fmt.format(t.weightLbs)} lb Trailer</h2>
+        <h2>Trucks & SUVs Ranked for Towing a ${fmt.format(t.weightLbs)} lb Trailer</h2>
         <p class="subtitle">Click any column header to sort vehicles by remaining payload headroom, max tow capacity, or utilization percentage:</p>
         <p id="table-sort-status" role="status" class="visually-hidden"></p>
         <div tabindex="0" role="region" aria-labelledby="trailer-rank-caption" class="table-wrapper">
@@ -1007,41 +1150,42 @@ function buildTrailerClassPages(sitemapUrls) {
         { label: t.title, url: `/trailers/${t.slug}/` }
       ],
       schemaJson: null,
-      mainContent
+      mainContent,
+      totalPagesCount
     });
 
     writePage(`trailers/${t.slug}`, html, sitemapUrls);
   }
 }
 
-function buildBrandPages(sitemapUrls) {
+function buildBrandPages(sitemapUrls, totalPagesCount) {
   const brands = [...new Set(vehicles.map((v) => v.brand))];
 
   for (const brand of brands) {
     const bSlug = slugify(brand);
     const brandVehicles = vehicles
       .filter((v) => v.brand === brand)
-      .sort((a, b) => b.maxTowLbs - a.maxTowLbs);
+      .sort((a, b) => b.year - a.year || b.maxTowLbs - a.maxTowLbs);
 
-    const highestTow = brandVehicles[0];
+    const highestTow = [...brandVehicles].sort((a, b) => b.maxTowLbs - a.maxTowLbs)[0];
     const highestPayload = [...brandVehicles].sort((a, b) => b.maxPayloadLbs - a.maxPayloadLbs)[0];
 
     const mainContent = `
       <article id="hero-panel" class="panel isolated-widget">
-        <span class="brand-badge">MANUFACTURER TOWING & PAYLOAD DIRECTORY</span>
-        <h1>${brand} Towing Capacity, Payload & GVWR Chart (${brandVehicles.length} Trims Tested)</h1>
-        <p class="subtitle">Compare factory SAE J2807 towing ratings, payload capacities, axle ratios, and real-world camper limits across every ${brand} truck and SUV configuration.</p>
+        <span class="brand-badge">MANUFACTURER TOWING & PAYLOAD DIRECTORY (2015–2026)</span>
+        <h1>${brand} Towing Capacity, Payload & GVWR Chart (${brandVehicles.length} Model-Year Trims)</h1>
+        <p class="subtitle">Compare factory SAE J2807 towing ratings, payload capacities, axle ratios, and real-world camper limits across every ${brand} truck and SUV configuration from 2015 to 2026.</p>
 
         <div class="spec-kpi-grid">
           <div class="kpi-box highlight">
             <span class="kpi-label">Highest ${brand} Tow Rating</span>
             <span class="kpi-value">${fmt.format(highestTow.maxTowLbs)} lbs</span>
-            <span class="kpi-sub">${highestTow.model} (${highestTow.trim})</span>
+            <span class="kpi-sub">${highestTow.year} ${highestTow.model} (${highestTow.trim})</span>
           </div>
           <div class="kpi-box highlight">
             <span class="kpi-label">Highest ${brand} Payload</span>
             <span class="kpi-value">${fmt.format(highestPayload.maxPayloadLbs)} lbs</span>
-            <span class="kpi-sub">${highestPayload.model} (${highestPayload.trim})</span>
+            <span class="kpi-sub">${highestPayload.year} ${highestPayload.model} (${highestPayload.trim})</span>
           </div>
         </div>
       </article>
@@ -1049,15 +1193,18 @@ function buildBrandPages(sitemapUrls) {
       ${renderAdUnit('midtool', 'brand-mid-ad', 2)}
 
       <section class="panel">
-        <h2>Sortable ${brand} Towing & Payload Specification Table</h2>
+        <h2>Sortable ${brand} Towing & Payload Specification Table (2015–2026)</h2>
         <p id="table-sort-status" role="status" class="visually-hidden"></p>
         <div tabindex="0" role="region" aria-labelledby="brand-table-caption" class="table-wrapper">
-          <table id="brand-spec-table" class="sortable-spec-table" style="--label-2:'Max Tow';--label-3:'Max Payload';--label-4:'Real Camper Max';--label-5:'GVWR';--label-6:'Torque';">
-            <caption id="brand-table-caption">${brand} Lineup Sorted by Maximum Towing Capacity</caption>
+          <table id="brand-spec-table" class="sortable-spec-table" style="--label-2:'Year';--label-3:'Max Tow';--label-4:'Max Payload';--label-5:'Real Camper Max';--label-6:'GVWR';">
+            <caption id="brand-table-caption">${brand} Lineup Sorted by Model Year & Towing Capacity</caption>
             <thead>
               <tr>
                 <th scope="col">${brand} Model & Trim</th>
                 <th scope="col" data-type="number" aria-sort="descending">
+                  <button type="button" commandfor="brand-spec-table" command="--sort">Year <span class="sort-icon" aria-hidden="true"></span></button>
+                </th>
+                <th scope="col" data-type="number">
                   <button type="button" commandfor="brand-spec-table" command="--sort">Max Tow <span class="sort-icon" aria-hidden="true"></span></button>
                 </th>
                 <th scope="col" data-type="number">
@@ -1069,9 +1216,6 @@ function buildBrandPages(sitemapUrls) {
                 <th scope="col" data-type="number">
                   <button type="button" commandfor="brand-spec-table" command="--sort">GVWR <span class="sort-icon" aria-hidden="true"></span></button>
                 </th>
-                <th scope="col" data-type="number">
-                  <button type="button" commandfor="brand-spec-table" command="--sort">Torque <span class="sort-icon" aria-hidden="true"></span></button>
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -1080,10 +1224,117 @@ function buildBrandPages(sitemapUrls) {
                   const realMax = calcRealWorldMaxTrailer(v, 550, 0.13);
                   return `<tr>
                     <th scope="row"><a href="/towing/${v.slug}/">${v.year} ${v.brand} ${v.model} — ${v.trim}</a></th>
+                    <td data-value="${v.year}">${v.year}</td>
                     <td data-value="${v.maxTowLbs}"><strong>${fmt.format(v.maxTowLbs)} lbs</strong></td>
                     <td data-value="${v.maxPayloadLbs}">${fmt.format(v.maxPayloadLbs)} lbs</td>
                     <td data-value="${realMax}">${fmt.format(realMax)} lbs</td>
                     <td data-value="${v.gvwrLbs}">${fmt.format(v.gvwrLbs)} lbs</td>
+                  </tr>`;
+                })
+                .join('')}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `;
+
+    const html = renderLayout({
+      title: `${brand} Towing Capacity & Payload Chart (${brandVehicles.length} Models Compared, 2015–2026)`,
+      description: `Compare ${brand} towing capacities, payload ratings, GVWR, and real-world camper tongue weight limits across all ${brandVehicles.length} trims (2015–2026).`,
+      canonicalPath: `brands/${bSlug}`,
+      breadcrumbs: [
+        { label: 'Home', url: '/' },
+        { label: `${brand} Towing Specs`, url: `/brands/${bSlug}/` }
+      ],
+      schemaJson: null,
+      mainContent,
+      totalPagesCount
+    });
+
+    writePage(`brands/${bSlug}`, html, sitemapUrls);
+  }
+}
+
+// Build 12 Model-Year Hub Pages (/years/2015/ through /years/2026/)
+function buildYearPages(sitemapUrls, totalPagesCount) {
+  const years = [...new Set(vehicles.map((v) => v.year))].sort((a, b) => b - a);
+
+  for (const year of years) {
+    const yearVehicles = vehicles
+      .filter((v) => v.year === year)
+      .sort((a, b) => b.maxTowLbs - a.maxTowLbs);
+
+    const topTow = yearVehicles[0];
+    const topPayload = [...yearVehicles].sort((a, b) => b.maxPayloadLbs - a.maxPayloadLbs)[0];
+
+    const mainContent = `
+      <article id="hero-panel" class="panel isolated-widget">
+        <span class="brand-badge">${year} MODEL YEAR TOWING & PAYLOAD MATRIX</span>
+        <h1>${year} Truck & SUV Towing Capacity & Payload Comparison Chart (${yearVehicles.length} Trims)</h1>
+        <p class="subtitle">Shopping for a ${year} pickup truck or SUV? Compare verified SAE J2807 towing capacities, door-jamb payload ratings, GVWR, and real-world travel trailer limits for every ${year} model.</p>
+
+        <div class="year-pill-bar" role="navigation" aria-label="Browse Other Model Years">
+          <strong style="font-family:var(--font-mono);font-size:0.74rem;margin-inline-end:0.25rem;">ALL YEARS:</strong>
+          ${years
+            .map(
+              (y) =>
+                `<a href="/years/${y}/" class="year-pill ${y === year ? 'active' : ''}" ${
+                  y === year ? 'aria-current="page"' : ''
+                }>${y}</a>`
+            )
+            .join('')}
+        </div>
+
+        <div class="spec-kpi-grid">
+          <div class="kpi-box highlight">
+            <span class="kpi-label">${year} Max Tow Leader</span>
+            <span class="kpi-value">${fmt.format(topTow.maxTowLbs)} lbs</span>
+            <span class="kpi-sub">${topTow.brand} ${topTow.model}</span>
+          </div>
+          <div class="kpi-box highlight">
+            <span class="kpi-label">${year} Payload Leader</span>
+            <span class="kpi-value">${fmt.format(topPayload.maxPayloadLbs)} lbs</span>
+            <span class="kpi-sub">${topPayload.brand} ${topPayload.model}</span>
+          </div>
+        </div>
+      </article>
+
+      ${renderAdUnit('midtool', 'year-mid-ad', 1)}
+
+      <section class="panel">
+        <h2>All ${yearVehicles.length} ${year} Trucks & SUVs Ranked by Towing & Payload</h2>
+        <p id="table-sort-status" role="status" class="visually-hidden"></p>
+        <div tabindex="0" role="region" aria-labelledby="year-table-caption" class="table-wrapper">
+          <table id="year-spec-table" class="sortable-spec-table" style="--label-2:'Class';--label-3:'Max Tow';--label-4:'Payload';--label-5:'Real Max Camper';--label-6:'Torque';">
+            <caption id="year-table-caption">${year} Model Year Vehicles Sorted by Maximum Towing Capacity</caption>
+            <thead>
+              <tr>
+                <th scope="col">${year} Vehicle & Powertrain</th>
+                <th scope="col">Class</th>
+                <th scope="col" data-type="number" aria-sort="descending">
+                  <button type="button" commandfor="year-spec-table" command="--sort">Max Tow <span class="sort-icon" aria-hidden="true"></span></button>
+                </th>
+                <th scope="col" data-type="number">
+                  <button type="button" commandfor="year-spec-table" command="--sort">Payload <span class="sort-icon" aria-hidden="true"></span></button>
+                </th>
+                <th scope="col" data-type="number">
+                  <button type="button" commandfor="year-spec-table" command="--sort">Payload-Capped Camper <span class="sort-icon" aria-hidden="true"></span></button>
+                </th>
+                <th scope="col" data-type="number">
+                  <button type="button" commandfor="year-spec-table" command="--sort">Torque <span class="sort-icon" aria-hidden="true"></span></button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              ${yearVehicles
+                .map((v) => {
+                  const realMax = calcRealWorldMaxTrailer(v, 550, 0.13);
+                  return `<tr>
+                    <th scope="row"><a href="/towing/${v.slug}/">${v.year} ${v.brand} ${v.model} — ${v.trim}</a></th>
+                    <td>${v.category}</td>
+                    <td data-value="${v.maxTowLbs}"><strong>${fmt.format(v.maxTowLbs)} lbs</strong></td>
+                    <td data-value="${v.maxPayloadLbs}">${fmt.format(v.maxPayloadLbs)} lbs</td>
+                    <td data-value="${realMax}"><strong>${fmt.format(realMax)} lbs</strong></td>
                     <td data-value="${v.torqueLbFt}">${fmt.format(v.torqueLbFt)} lb-ft</td>
                   </tr>`;
                 })
@@ -1095,64 +1346,65 @@ function buildBrandPages(sitemapUrls) {
     `;
 
     const html = renderLayout({
-      title: `${brand} Towing Capacity & Payload Chart (${brandVehicles.length} Models Compared)`,
-      description: `Compare ${brand} towing capacities, payload ratings, GVWR, and real-world camper tongue weight limits across all ${brandVehicles.length} trims.`,
-      canonicalPath: `brands/${bSlug}`,
+      title: `${year} Truck & SUV Towing Capacity & Payload Chart (${yearVehicles.length} Models Compared)`,
+      description: `Compare ${year} truck and SUV towing capacities, payload ratings, GVWR, and real-world travel trailer limits across ${yearVehicles.length} trims.`,
+      canonicalPath: `years/${year}`,
       breadcrumbs: [
         { label: 'Home', url: '/' },
-        { label: `${brand} Towing Specs`, url: `/brands/${bSlug}/` }
+        { label: `${year} Towing & Payload Directory`, url: `/years/${year}/` }
       ],
       schemaJson: null,
-      mainContent
+      mainContent,
+      totalPagesCount
     });
 
-    writePage(`brands/${bSlug}`, html, sitemapUrls);
+    writePage(`years/${year}`, html, sitemapUrls);
   }
 }
 
-function buildHomepage(comparisonPairs, sitemapUrls) {
+function buildHomepage(comparisonPairs, sitemapUrls, totalPagesCount) {
   const brands = [...new Set(vehicles.map((v) => v.brand))].sort();
-  const sortedVehicles = [...vehicles].sort((a, b) => b.maxTowLbs - a.maxTowLbs);
+  const years = [...new Set(vehicles.map((v) => v.year))].sort((a, b) => b - a);
+  const sortedVehicles = [...vehicles].sort((a, b) => b.year - a.year || b.maxTowLbs - a.maxTowLbs);
 
   const mainContent = `
     <section id="hero-panel" class="panel isolated-widget">
-      <span class="brand-badge">SAE J2807 TOWING, PAYLOAD & GVWR DATABASE (${vehicles.length} TRIMS • 171 PAGES)</span>
-      <h1>Truck & SUV Towing Capacity vs. Real-World Payload Matrix</h1>
-      <p class="subtitle">90% of overloaded RVers exceed their truck's <strong>Payload Capacity (GVWR)</strong> long before hitting their brochure <strong>Max Tow Rating</strong>. Filter all ${vehicles.length} vehicles below or click any trim to launch the interactive tongue-weight & payload simulator.</p>
+      <span class="brand-badge">SAE J2807 TOWING, PAYLOAD & GVWR DATABASE (${vehicles.length} TRIMS • ${fmt.format(totalPagesCount)} PAGES)</span>
+      <h1>2015–2026 Truck & SUV Towing Capacity vs. Real-World Payload Matrix</h1>
+      <p class="subtitle">90% of overloaded RVers exceed their truck's <strong>Payload Capacity (GVWR)</strong> long before hitting their brochure <strong>Max Tow Rating</strong>. Filter all ${vehicles.length} new and used tow vehicles (2015–2026) below or click any trim to launch the live SVG tongue-weight & squat simulator.</p>
 
-      <div class="calc-grid" style="margin-block-end:1rem;">
-        <div class="control-group">
-          <label for="filter-search" style="font-weight:700;font-size:0.8rem;display:block;margin-block-end:0.25rem;">Search Model, Engine, or Trim</label>
-          <input type="search" id="filter-search" placeholder="e.g. F-150 EcoBoost, Duramax, Tacoma, 3.5L...">
+      <search aria-label="Filter Master Vehicle Database">
+        <div class="calc-grid" style="margin-block-end:1rem;">
+          <div class="control-group">
+            <label for="filter-search" style="font-weight:700;font-size:0.8rem;display:block;margin-block-end:0.25rem;">Search Model, Year, Engine, or Trim</label>
+            <input type="search" id="filter-search" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="e.g. 2018 F-150, Duramax, Tacoma, 3.5L...">
+          </div>
+          <div class="control-group">
+            <label for="filter-year" style="font-weight:700;font-size:0.8rem;display:block;margin-block-end:0.25rem;">Filter by Model Year (2015–2026)</label>
+            <select id="filter-year">
+              <option value="">All Model Years (${years.length} Years)</option>
+              ${years.map((y) => `<option value="${y}">${y} Model Year</option>`).join('')}
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="filter-brand" style="font-weight:700;font-size:0.8rem;display:block;margin-block-end:0.25rem;">Filter by Brand</label>
+            <select id="filter-brand">
+              <option value="">All Manufacturers (${brands.length} Brands)</option>
+              ${brands.map((b) => `<option value="${b}">${b}</option>`).join('')}
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="filter-min-tow" style="font-weight:700;font-size:0.8rem;display:block;margin-block-end:0.25rem;">Minimum Tow Capacity</label>
+            <select id="filter-min-tow">
+              <option value="0">Any Tow Rating</option>
+              <option value="5000">5,000+ lbs (Compact Campers & Boats)</option>
+              <option value="7500">7,500+ lbs (Midsize Bunkhouse Trailers)</option>
+              <option value="10000">10,000+ lbs (Heavy Half-Ton / Toy Haulers)</option>
+              <option value="15000">15,000+ lbs (Fifth-Wheels & Heavy Duty)</option>
+            </select>
+          </div>
         </div>
-        <div class="control-group">
-          <label for="filter-brand" style="font-weight:700;font-size:0.8rem;display:block;margin-block-end:0.25rem;">Filter by Brand</label>
-          <select id="filter-brand">
-            <option value="">All Manufacturers (${brands.length} Brands)</option>
-            ${brands.map((b) => `<option value="${b}">${b}</option>`).join('')}
-          </select>
-        </div>
-        <div class="control-group">
-          <label for="filter-min-tow" style="font-weight:700;font-size:0.8rem;display:block;margin-block-end:0.25rem;">Minimum Tow Capacity</label>
-          <select id="filter-min-tow">
-            <option value="0">Any Tow Rating</option>
-            <option value="5000">5,000+ lbs (Compact Campers & Boats)</option>
-            <option value="7500">7,500+ lbs (Midsize Bunkhouse Trailers)</option>
-            <option value="10000">10,000+ lbs (Heavy Half-Ton / Toy Haulers)</option>
-            <option value="15000">15,000+ lbs (Fifth-Wheels & Heavy Duty)</option>
-          </select>
-        </div>
-        <div class="control-group">
-          <label for="filter-min-payload" style="font-weight:700;font-size:0.8rem;display:block;margin-block-end:0.25rem;">Minimum Payload Capacity</label>
-          <select id="filter-min-payload">
-            <option value="0">Any Payload Rating</option>
-            <option value="1500">1,500+ lbs Payload</option>
-            <option value="1800">1,800+ lbs Payload (Safe Half-Ton)</option>
-            <option value="2200">2,200+ lbs Payload (Max Payload / HD)</option>
-            <option value="3200">3,200+ lbs Payload (5th-Wheel Ready)</option>
-          </select>
-        </div>
-      </div>
+      </search>
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-block-end:0.5rem;font-family:var(--font-mono);font-size:0.82rem;">
         <strong id="filter-match-count">${vehicles.length} Vehicles Matched</strong>
@@ -1161,8 +1413,8 @@ function buildHomepage(comparisonPairs, sitemapUrls) {
 
       <p id="table-sort-status" role="status" class="visually-hidden"></p>
       <div tabindex="0" role="region" aria-labelledby="master-table-caption" class="table-wrapper">
-        <table id="master-vehicle-table" class="sortable-spec-table" style="--label-2:'Category';--label-3:'Max Tow';--label-4:'Payload';--label-5:'Real Max Camper';--label-6:'GVWR';--label-7:'Torque';">
-          <caption id="master-table-caption">Master SAE J2807 Towing, Payload & Real-World Camper Limit Database</caption>
+        <table id="master-vehicle-table" class="sortable-spec-table" style="--label-2:'Class';--label-3:'Max Tow';--label-4:'Payload';--label-5:'Real Max Camper';--label-6:'GVWR';--label-7:'Torque';">
+          <caption id="master-table-caption">Master 2015–2026 SAE J2807 Towing, Payload & Real-World Camper Limit Database</caption>
           <thead>
             <tr>
               <th scope="col">Vehicle Year, Model & Trim</th>
@@ -1188,7 +1440,7 @@ function buildHomepage(comparisonPairs, sitemapUrls) {
             ${sortedVehicles
               .map((v) => {
                 const realMax = calcRealWorldMaxTrailer(v, 550, 0.13);
-                return `<tr data-brand="${v.brand}" data-tow="${v.maxTowLbs}" data-payload="${v.maxPayloadLbs}">
+                return `<tr data-year="${v.year}" data-brand="${v.brand}" data-tow="${v.maxTowLbs}" data-payload="${v.maxPayloadLbs}">
                   <th scope="row"><a href="/towing/${v.slug}/">${v.year} ${v.brand} ${v.model} — ${v.trim}</a></th>
                   <td>${v.category}</td>
                   <td data-value="${v.maxTowLbs}"><strong>${fmt.format(v.maxTowLbs)} lbs</strong></td>
@@ -1205,6 +1457,22 @@ function buildHomepage(comparisonPairs, sitemapUrls) {
     </section>
 
     ${renderAdUnit('midtool', 'home-mid-ad', 3)}
+
+    <section class="panel deferred-section">
+      <h2>Browse Used & New Tow Vehicles by Model Year (2015–2026)</h2>
+      <p class="subtitle">75% of RV and boat towers pull with a used truck. Select a model year below to view all factory tow and payload ratings for that year:</p>
+      <div class="link-cluster-grid">
+        ${years
+          .map((y) => {
+            const count = vehicles.filter((v) => v.year === y).length;
+            return `<a href="/years/${y}/" class="cluster-card">
+              <span class="cluster-card-title">${y} Model Year Towing & Payload Chart</span>
+              <span class="cluster-card-meta">${count} Trucks & SUVs Tested</span>
+            </a>`;
+          })
+          .join('')}
+      </div>
+    </section>
 
     <section class="panel deferred-section">
       <h2>Browse Tow Vehicles by Camper & Trailer Weight Class</h2>
@@ -1226,10 +1494,10 @@ function buildHomepage(comparisonPairs, sitemapUrls) {
       <p class="subtitle">Click any matchup to test both vehicles side-by-side on the same dual-rig payload simulator:</p>
       <div class="link-cluster-grid">
         ${comparisonPairs
-          .slice(0, 18)
+          .slice(0, 24)
           .map(
             (p) => `<a href="/compare/${p.slug}/" class="cluster-card">
-              <span class="cluster-card-title">${p.a.brand} ${p.a.model} vs. ${p.b.brand} ${p.b.model}</span>
+              <span class="cluster-card-title">${p.a.year} ${p.a.brand} ${p.a.model} vs. ${p.b.year} ${p.b.brand} ${p.b.model}</span>
               <span class="cluster-card-meta">${fmt.format(p.a.maxTowLbs)} vs ${fmt.format(p.b.maxTowLbs)} lbs Tow • ${fmt.format(p.a.maxPayloadLbs)} vs ${fmt.format(p.b.maxPayloadLbs)} lbs Payload</span>
             </a>`
           )
@@ -1245,7 +1513,7 @@ function buildHomepage(comparisonPairs, sitemapUrls) {
             const count = vehicles.filter((v) => v.brand === b).length;
             return `<a href="/brands/${slugify(b)}/" class="cluster-card">
               <span class="cluster-card-title">${b} Towing & Payload Directory</span>
-              <span class="cluster-card-meta">${count} Trims & Engine Configurations</span>
+              <span class="cluster-card-meta">${count} Model-Year Trims (2015–2026)</span>
             </a>`;
           })
           .join('')}
@@ -1254,25 +1522,25 @@ function buildHomepage(comparisonPairs, sitemapUrls) {
   `;
 
   const html = renderLayout({
-    title: `${SITE_NAME} — Truck & SUV Towing Capacity, Payload & Camper Fitment Database`,
-    description: `Compare SAE J2807 towing capacity, payload limits, GVWR, GCWR, and real-world travel trailer tongue weight margins across ${vehicles.length} trucks and SUVs.`,
+    title: `${SITE_NAME} — 2015–2026 Truck & SUV Towing Capacity, Payload & Camper Fitment Database`,
+    description: `Compare SAE J2807 towing capacity, payload limits, GVWR, GCWR, and real-world travel trailer tongue weight margins across ${vehicles.length} trucks and SUVs (2015–2026).`,
     canonicalPath: '',
     breadcrumbs: [],
     schemaJson: {
       '@context': 'https://schema.org',
       '@type': 'Dataset',
-      name: 'SAE J2807 Truck & SUV Towing Capacity and Payload Matrix',
+      name: '2015-2026 SAE J2807 Truck & SUV Towing Capacity and Payload Matrix',
       description: 'Comprehensive specification dataset of towing capacity, payload limits, GVWR, GCWR, and real-world trailer tongue weight compatibility.',
       url: `${SITE_URL}/`
     },
-    mainContent
+    mainContent,
+    totalPagesCount
   });
 
   writePage('', html, sitemapUrls);
 }
 
-function buildCloudflareEdgeFiles(sitemapUrls) {
-  // 1. Cloudflare Pages _headers (Immutable fingerprinted assets + bfcache-friendly HTML headers)
+function buildCloudflareEdgeFiles(sitemapUrls, totalPagesCount) {
   const headersTxt = `# Cloudflare Pages Edge Caching & Security Headers
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
@@ -1295,7 +1563,6 @@ function buildCloudflareEdgeFiles(sitemapUrls) {
 `;
   fs.writeFileSync(path.join(DIST_DIR, '_headers'), headersTxt, 'utf8');
 
-  // 2. Cloudflare Pages _redirects
   const redirectsTxt = `# Redirect legacy or short paths to canonical matrix directories
 /vehicles/* /towing/:splat 301
 /trucks/* /towing/:splat 301
@@ -1303,22 +1570,22 @@ function buildCloudflareEdgeFiles(sitemapUrls) {
 `;
   fs.writeFileSync(path.join(DIST_DIR, '_redirects'), redirectsTxt, 'utf8');
 
-  // 3. Fast Static 404 Page for Cloudflare Pages
   const notFoundHtml = renderLayout({
     title: `404 Page Not Found — ${SITE_NAME}`,
     description: 'Find your truck or SUV towing and payload specifications in our master directory.',
     canonicalPath: '404',
     breadcrumbs: [{ label: 'Home', url: '/' }, { label: '404 Not Found', url: '/404/' }],
     schemaJson: null,
+    totalPagesCount,
     mainContent: `
       <section id="hero-panel" class="panel isolated-widget">
         <span class="brand-badge">404 • SPECIFICATION ENDPOINT NOT FOUND</span>
         <h1>Vehicle or Trailer Page Not Found</h1>
-        <p class="subtitle">Return to the master SAE J2807 towing & payload matrix or browse our top categories below:</p>
+        <p class="subtitle">Use the Quick-Jump search bar at the top or return to the master SAE J2807 towing & payload matrix below:</p>
         <div class="link-cluster-grid">
           <a href="/" class="cluster-card">
             <span class="cluster-card-title">→ Open Master Vehicle Directory (${vehicles.length} Trims)</span>
-            <span class="cluster-card-meta">Filter by brand, max tow rating, and payload capacity</span>
+            <span class="cluster-card-meta">Filter by model year (2015–2026), brand, max tow rating, and payload</span>
           </a>
           <a href="/trailers/5000-lb-single-axle-travel-trailers/" class="cluster-card">
             <span class="cluster-card-title">→ 5,000 lb Compact Travel Trailers</span>
@@ -1334,7 +1601,6 @@ function buildCloudflareEdgeFiles(sitemapUrls) {
   });
   fs.writeFileSync(path.join(DIST_DIR, '404.html'), notFoundHtml, 'utf8');
 
-  // 4. Sitemap & Robots.txt
   const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${sitemapUrls.map((u) => `  <url><loc>${u}</loc><changefreq>monthly</changefreq><priority>${u === SITE_URL + '/' ? '1.0' : '0.8'}</priority></url>`).join('\n')}
@@ -1356,25 +1622,31 @@ function runBuild() {
   ensureDir(DIST_DIR);
   ensureDir(path.join(DIST_DIR, 'assets'));
 
-  // Write fingerprinted, minified JS & CSS assets
   fs.writeFileSync(path.join(DIST_DIR, 'assets', hashedJsFilename), minifiedJs, 'utf8');
   fs.writeFileSync(path.join(DIST_DIR, 'assets', 'styles.css'), criticalCss, 'utf8');
 
   const sitemapUrls = [];
   const comparisonPairs = generateComparisonPairs();
+  const brandsCount = new Set(vehicles.map((v) => v.brand)).size;
+  const yearsCount = new Set(vehicles.map((v) => v.year)).size;
+  const totalPagesCount = 1 + vehicles.length + comparisonPairs.length + trailers.length + brandsCount + yearsCount;
 
-  buildHomepage(comparisonPairs, sitemapUrls);
-  buildVehiclePages(comparisonPairs, sitemapUrls);
-  buildComparisonPages(comparisonPairs, sitemapUrls);
-  buildTrailerClassPages(sitemapUrls);
-  buildBrandPages(sitemapUrls);
-  buildCloudflareEdgeFiles(sitemapUrls);
+  buildHomepage(comparisonPairs, sitemapUrls, totalPagesCount);
+  buildVehiclePages(comparisonPairs, sitemapUrls, totalPagesCount);
+  buildComparisonPages(comparisonPairs, sitemapUrls, totalPagesCount);
+  buildTrailerClassPages(sitemapUrls, totalPagesCount);
+  buildBrandPages(sitemapUrls, totalPagesCount);
+  buildYearPages(sitemapUrls, totalPagesCount);
+  buildCloudflareEdgeFiles(sitemapUrls, totalPagesCount);
 
   const elapsedMs = Date.now() - startTime;
-  console.log(`[TowSpecMatrix SSG] Built ${sitemapUrls.length} pages + Cloudflare Pages edge configs in ${elapsedMs}ms!`);
-  console.log(`  - Inlined Minified Critical CSS: ${(Buffer.byteLength(criticalCss) / 1024).toFixed(2)} KB`);
-  console.log(`  - Fingerprinted Immutable JS (/assets/${hashedJsFilename}): ${(Buffer.byteLength(minifiedJs) / 1024).toFixed(2)} KB`);
-  console.log(`  - Cloudflare Pages files: dist/_headers, dist/_redirects, dist/404.html`);
+  console.log(`[TowSpecMatrix Trajectory B SSG] Built ${sitemapUrls.length} static HTML pages in ${elapsedMs}ms!`);
+  console.log(`  - 1 Master Directory & Interactive Matcher Homepage`);
+  console.log(`  - ${vehicles.length} Individual Vehicle Towing & Payload Workbench Pages (2015–2026) (/towing/...)`);
+  console.log(`  - ${comparisonPairs.length} Head-to-Head Dual-Simulator Comparison Pages (/compare/...)`);
+  console.log(`  - ${yearsCount} Model-Year Towing & Payload Directories (/years/2015..2026/)`);
+  console.log(`  - ${trailers.length} Trailer Weight-Class Fitment Directories (/trailers/...)`);
+  console.log(`  - ${brandsCount} Manufacturer Brand Hub Pages (/brands/...)`);
 }
 
 runBuild();
