@@ -1,0 +1,4 @@
+# Redirect legacy or short paths to canonical matrix directories
+/vehicles/* /towing/:splat 301
+/trucks/* /towing/:splat 301
+/campers/* /trailers/:splat 301

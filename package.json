@@ -1,0 +1,20 @@
+{
+  "name": "towspec-matrix",
+  "version": "1.1.0",
+  "description": "High-RPM Programmatic SEO Towing Capacity, Payload & RV Fitment Matrix (Cloudflare Pages Ready)",
+  "scripts": {
+    "build": "node src/build.js",
+    "serve": "npx -y serve dist -l 4173",
+    "cf:dev": "node src/build.js && npx -y wrangler pages dev dist --port 8788",
+    "deploy": "node src/build.js && npx -y wrangler pages deploy dist --project-name=towspec-matrix"
+  },
+  "keywords": [
+    "programmatic-seo",
+    "towing-capacity",
+    "payload-calculator",
+    "ad-monetization",
+    "cloudflare-pages",
+    "static-site-generator"
+  ],
+  "license": "MIT"
+}

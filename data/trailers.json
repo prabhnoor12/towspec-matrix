@@ -1,0 +1,90 @@
+[
+  {
+    "slug": "3500-lb-teardrop-pop-up-campers",
+    "title": "3,500 lb Teardrop & Pop-Up Campers",
+    "weightLbs": 3500,
+    "tongueWeightLbs": 420,
+    "tongueRatio": 0.12,
+    "hitchType": "Bumper Pull (Standard Ball)",
+    "lengthFt": "14 - 18 ft",
+    "examples": "Airstream Basecamp 16, Forest River Rockwood Geo Pro, Casita Spirit 17, 17ft Bass Boat",
+    "description": "Lightweight fiberglass, pop-up, and single-axle adventure trailers suitable for midsize crossovers, unibody pickups, and off-road SUVs."
+  },
+  {
+    "slug": "5000-lb-single-axle-travel-trailers",
+    "title": "5,000 lb Compact Travel Trailers & Boats",
+    "weightLbs": 5000,
+    "tongueWeightLbs": 625,
+    "tongueRatio": 0.125,
+    "hitchType": "Weight Distribution Hitch (WDH)",
+    "lengthFt": "19 - 23 ft",
+    "examples": "Jayco Jay Feather Micro, Winnebago Micro Minnie, 20ft Fiberglass Bowrider Boat, Dual-Axle Utility Trailer",
+    "description": "The most popular entry-level family camper weight bracket. Requires careful payload verification on midsize 3-row SUVs due to 600+ lb tongue weights."
+  },
+  {
+    "slug": "6500-lb-family-bunkhouse-campers",
+    "title": "6,500 lb Family Bunkhouse Travel Trailers",
+    "weightLbs": 6500,
+    "tongueWeightLbs": 845,
+    "tongueRatio": 0.13,
+    "hitchType": "Weight Distribution + Sway Control",
+    "lengthFt": "24 - 27 ft",
+    "examples": "Grand Design Imagine XLS 23BHE, Keystone Passport 2400RB, Airstream Flying Cloud 23FB, 22ft Wakeboard Boat",
+    "description": "Mid-weight dual-axle travel trailers with slide-outs and bunkhouses. Often pushes midsize trucks and full-size SUVs right to their payload ceiling."
+  },
+  {
+    "slug": "8000-lb-full-size-travel-trailers",
+    "title": "8,000 lb Full-Size Slide-Out Travel Trailers",
+    "weightLbs": 8000,
+    "tongueWeightLbs": 1040,
+    "tongueRatio": 0.13,
+    "hitchType": "Class IV WDH w/ Integrated Sway Control",
+    "lengthFt": "28 - 32 ft",
+    "examples": "Grand Design Imagine 2800BH, Forest River Cherokee Grey Wolf, 2-Horse Bumper Pull Trailer, Enclosed Car Hauler",
+    "description": "Heavy half-ton territory. With over 1,000 lbs of loaded tongue weight plus a 100 lb weight-distribution hitch, payload capacity becomes the primary limiting factor."
+  },
+  {
+    "slug": "10000-lb-heavy-travel-trailers-toy-haulers",
+    "title": "10,000 lb Toy Haulers & Heavy Equipment Trailers",
+    "weightLbs": 10000,
+    "tongueWeightLbs": 1350,
+    "tongueRatio": 0.135,
+    "hitchType": "Heavy-Duty Class IV / V WDH",
+    "lengthFt": "31 - 35 ft",
+    "examples": "Grand Design Momentum G-Class, Skid Steer Equipment Trailer, 28ft Offshore Center Console Boat, 3-Horse Slant Load",
+    "description": "Demands high-output half-ton trucks with Max Tow packages or 3/4-ton (2500-series) heavy-duty pickups for safe mountain grade braking and cooling."
+  },
+  {
+    "slug": "13000-lb-mid-profile-fifth-wheels",
+    "title": "13,000 lb Mid-Profile Fifth-Wheel RVs",
+    "weightLbs": 13000,
+    "tongueWeightLbs": 2340,
+    "tongueRatio": 0.18,
+    "hitchType": "In-Bed Fifth-Wheel Hitch (18% Pin Weight)",
+    "lengthFt": "32 - 36 ft",
+    "examples": "Grand Design Reflection 150 Series, Cougar Half-Ton 5th Wheel, Mini-Excavator Dump Trailer",
+    "description": "Fifth-wheel trailers place 17% to 20% of their gross weight directly onto the truck bed pin. Nearly all half-ton trucks run out of payload before reaching 13,000 lbs."
+  },
+  {
+    "slug": "16000-lb-luxury-fifth-wheel-campers",
+    "title": "16,000 lb Luxury Fifth-Wheels & Goosenecks",
+    "weightLbs": 16000,
+    "tongueWeightLbs": 3200,
+    "tongueRatio": 0.20,
+    "hitchType": "20K Fifth-Wheel / Gooseneck Hitch",
+    "lengthFt": "36 - 40 ft",
+    "examples": "Montana High Country, Grand Design Solitude, 30ft Gooseneck Flatbed w/ Tractor, 4-Horse Living Quarters",
+    "description": "Strictly 3/4-ton (2500HD) and 1-ton (3500) heavy-duty truck territory. Generates 3,000+ lbs of vertical bed pin weight plus 200 lbs of hitch hardware."
+  },
+  {
+    "slug": "22000-lb-commercial-gooseneck-heavy-fifth-wheels",
+    "title": "22,000 lb Triple-Axle Toy Haulers & Commercial Goosenecks",
+    "weightLbs": 22000,
+    "tongueWeightLbs": 4400,
+    "tongueRatio": 0.20,
+    "hitchType": "30K Gooseneck / Commercial Fifth-Wheel",
+    "lengthFt": "40 - 44 ft",
+    "examples": "Grand Design Momentum 395MS, Brinkley Model G, 40ft Tandem-Dual Hotshot Gooseneck",
+    "description": "Extreme heavy-haul class requiring high-torque 6.7L/6.6L turbo-diesel powertrains, exhaust brakes, and 1-ton SRW or DRW (dually) rear axle payload ratings."
+  }
+]
