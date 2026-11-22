@@ -1612,6 +1612,28 @@ Allow: /
 Sitemap: ${SITE_URL}/sitemap.xml
 `;
   fs.writeFileSync(path.join(DIST_DIR, 'robots.txt'), robotsTxt, 'utf8');
+
+  // 5. Support Cloudflare Workers Static Assets deploy from both root (/) and dist/ working directory
+  const distWranglerJson = JSON.stringify(
+    {
+      name: 'townmatrix',
+      compatibility_date: '2026-11-01',
+      assets: {
+        directory: './',
+        not_found_handling: '404-page'
+      }
+    },
+    null,
+    2
+  );
+  fs.writeFileSync(path.join(DIST_DIR, 'wrangler.jsonc'), distWranglerJson, 'utf8');
+  fs.writeFileSync(path.join(DIST_DIR, '.assetsignore'), 'wrangler.jsonc\nsrc\n', 'utf8');
+  ensureDir(path.join(DIST_DIR, 'src'));
+  fs.writeFileSync(
+    path.join(DIST_DIR, 'src', 'build.js'),
+    'console.log("[TownMatrix] Static files already pre-built in dist/ — proceeding to Cloudflare deploy.");\n',
+    'utf8'
+  );
 }
 
 function runBuild() {
