@@ -368,7 +368,7 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
       </div>
       <div style="font-family:var(--font-mono);font-size:0.76rem;">
         <div>Total Indexed Matrix Pages: <strong>${fmt.format(totalPagesCount)} Static HTML Endpoints</strong></div>
-        <div><a href="/sitemap.xml">XML Sitemap</a> • <a href="/">Master Directory</a></div>
+        <div><a href="/about/">Methodology & SAE J2807</a> • <a href="/privacy-policy/">Privacy Policy</a> • <a href="/terms/">Terms & Safety Disclaimer</a> • <a href="/contact/">Contact</a> • <a href="/sitemap.xml">XML Sitemap</a></div>
       </div>
     </div>
   </footer>
@@ -1613,6 +1613,13 @@ Sitemap: ${SITE_URL}/sitemap.xml
 `;
   fs.writeFileSync(path.join(DIST_DIR, 'robots.txt'), robotsTxt, 'utf8');
 
+  // Placeholder ads.txt ready for Google AdSense / Mediavine / Raptive publisher ID
+  const adsTxt = `# TownMatrix.com Authorized Digital Sellers (IAB ads.txt)
+# Replace pub-0000000000000000 with your live Google AdSense Publisher ID upon approval:
+# google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+`;
+  fs.writeFileSync(path.join(DIST_DIR, 'ads.txt'), adsTxt, 'utf8');
+
   // 5. Support Cloudflare Workers Static Assets deploy from both root (/) and dist/ working directory
   const distWranglerJson = JSON.stringify(
     {
@@ -1636,6 +1643,114 @@ Sitemap: ${SITE_URL}/sitemap.xml
   );
 }
 
+function buildCompliancePages(sitemapUrls, totalPagesCount) {
+  // 1. About & SAE J2807 Methodology Page (E-E-A-T Trust Signal)
+  writePage(
+    'about',
+    renderLayout({
+      title: `About ${SITE_NAME} — SAE J2807 Towing & Payload Engineering Methodology`,
+      description: `How ${SITE_NAME} calculates real-world payload bottlenecks, tongue weight ratios, GVWR, and SAE J2807 towing capacities across 2015–2026 trucks and SUVs.`,
+      canonicalPath: 'about',
+      breadcrumbs: [{ label: 'Home', url: '/' }, { label: 'Methodology & About', url: '/about/' }],
+      schemaJson: null,
+      totalPagesCount,
+      mainContent: `
+        <article id="hero-panel" class="panel isolated-widget">
+          <span class="brand-badge">EDITORIAL & ENGINEERING METHODOLOGY (E-E-A-T)</span>
+          <h1>About ${SITE_NAME} & Our SAE J2807 Calculation Methodology</h1>
+          <p class="subtitle">Why brochure "Maximum Towing Capacity" numbers mislead 90% of RV and trailer buyers—and how ${SITE_NAME} models real-world GVWR payload bottlenecks.</p>
+          <h2>1. Data Sources & SAE J2807 Standards</h2>
+          <p>${SITE_NAME} compiles manufacturer towing guides, SAE J2807 certification data, Gross Vehicle Weight Ratings (GVWR), Gross Combined Weight Ratings (GCWR), and base curb weights across ${vehicles.length} pickup truck and SUV configurations from model years 2015 through 2026.</p>
+          <h2>2. The Real-World Payload Bottleneck Formula</h2>
+          <p>Factory maximum tow ratings assume an empty base-trim vehicle with only a 150-lb driver. In real-world towing, every pound of trailer tongue weight (12%–15% for bumper-pull campers, 18%–22% for fifth-wheels), cab passengers, truck bed cargo, and weight-distribution hitch hardware subtracts directly from the vehicle's payload capacity (<code>GVWR - Curb Weight</code>). Our interactive simulator computes all three limits (Payload, Max Tow, and GCWR) simultaneously and flags whichever ceiling is reached first.</p>
+        </article>
+      `
+    }),
+    sitemapUrls
+  );
+
+  // 2. Privacy Policy Page (Mandatory for Google AdSense / Mediavine / Raptive Approval)
+  writePage(
+    'privacy-policy',
+    renderLayout({
+      title: `Privacy Policy & Cookie Disclosure — ${SITE_NAME}`,
+      description: `Privacy Policy, Google AdSense DART cookie disclosure, and GDPR/CCPA data protection terms for ${SITE_NAME} (${SITE_URL}).`,
+      canonicalPath: 'privacy-policy',
+      breadcrumbs: [{ label: 'Home', url: '/' }, { label: 'Privacy Policy', url: '/privacy-policy/' }],
+      schemaJson: null,
+      totalPagesCount,
+      mainContent: `
+        <article id="hero-panel" class="panel isolated-widget">
+          <span class="brand-badge">LEGAL & ADVERTISING COMPLIANCE</span>
+          <h1>Privacy Policy & Programmatic Advertising Disclosure</h1>
+          <p class="subtitle">Last Updated: November 2026 • Applicable to <strong>${SITE_URL}</strong></p>
+          <h2>1. Client-Side Calculation Privacy</h2>
+          <p>All towing, payload, and tongue-weight calculations on ${SITE_NAME} execute 100% locally inside your web browser. When you enter your vehicle's yellow door-jamb payload sticker number or cargo weights, that data is never transmitted to or stored on a backend database.</p>
+          <h2>2. Google AdSense & Third-Party Advertising Cookies</h2>
+          <p>Third-party vendors, including Google, use cookies (such as the DoubleClick DART cookie) to serve ads based on a user's prior visits to ${SITE_URL} or other websites on the internet. Google's use of advertising cookies enables it and its partners to serve personalized or non-personalized ads to our visitors.</p>
+          <ul>
+            <li>Users may opt out of personalized advertising by visiting <a href="https://myadcenter.google.com/" rel="nofollow noopener" target="_blank">Google Ads Settings</a>.</li>
+            <li>Alternatively, you can opt out of third-party vendor cookies for personalized advertising by visiting <a href="https://optout.aboutads.info/" rel="nofollow noopener" target="_blank">www.aboutads.info</a>.</li>
+          </ul>
+          <h2>3. Log Files, LocalStorage & Analytics</h2>
+          <p>${SITE_NAME} uses standard edge CDN log files (via Cloudflare) and browser <code>localStorage</code> solely to remember your optional Light/Dark theme override preference.</p>
+        </article>
+      `
+    }),
+    sitemapUrls
+  );
+
+  // 3. Terms of Use & Towing Safety Disclaimer
+  writePage(
+    'terms',
+    renderLayout({
+      title: `Terms of Use & Towing Safety Disclaimer — ${SITE_NAME}`,
+      description: `Terms of Use and mandatory VIN door-jamb GVWR/payload verification disclaimer for ${SITE_NAME}.`,
+      canonicalPath: 'terms',
+      breadcrumbs: [{ label: 'Home', url: '/' }, { label: 'Terms & Safety Disclaimer', url: '/terms/' }],
+      schemaJson: null,
+      totalPagesCount,
+      mainContent: `
+        <article id="hero-panel" class="panel isolated-widget">
+          <span class="brand-badge">SAFETY & LIABILITY DISCLAIMER</span>
+          <h1>Terms of Use & Towing Safety Disclaimer</h1>
+          <p class="subtitle">Important legal and safety notice regarding factory towing ratings vs. VIN-specific vehicle equipment.</p>
+          <h2>1. Always Verify Your Physical Yellow Door-Jamb Sticker</h2>
+          <p>All specifications, payload figures, and calculations provided on ${SITE_NAME} are for informational and educational reference only. Because factory options (sunroofs, running boards, larger wheels, skid plates, and trim packages) add curb weight and reduce payload on every individual vehicle, <strong>you must always verify the physical Tire and Loading Information sticker and GVWR certification label located on your specific vehicle's driver-side door jamb</strong>, as well as your owner's manual and physical CAT scale weights, before towing any trailer.</p>
+          <h2>2. Limitation of Liability</h2>
+          <p>${SITE_NAME} makes no warranties regarding the accuracy or completeness of any specification and assumes zero liability for equipment damage, warranty disputes, or towing incidents.</p>
+        </article>
+      `
+    }),
+    sitemapUrls
+  );
+
+  // 4. Contact & Data Correction Request Page
+  writePage(
+    'contact',
+    renderLayout({
+      title: `Contact & Specification Correction — ${SITE_NAME}`,
+      description: `Contact the ${SITE_NAME} editorial and engineering data team to report a trim specification update or advertising inquiry.`,
+      canonicalPath: 'contact',
+      breadcrumbs: [{ label: 'Home', url: '/' }, { label: 'Contact Us', url: '/contact/' }],
+      schemaJson: null,
+      totalPagesCount,
+      mainContent: `
+        <article id="hero-panel" class="panel isolated-widget">
+          <span class="brand-badge">EDITORIAL & ADVERTISING CONTACT</span>
+          <h1>Contact ${SITE_NAME}</h1>
+          <p class="subtitle">Have a yellow door-jamb payload submission, an OEM towing guide update, or an advertising partnership inquiry?</p>
+          <h2>1. Specification & Door-Jamb Data Submissions</h2>
+          <p>To submit a verified VIN door-jamb payload photo or request an additional truck/SUV trim configuration for our next build release, email our data desk at: <strong>data@townmatrix.com</strong></p>
+          <h2>2. Advertising & Sponsorship Inquiries</h2>
+          <p>For direct sponsorship or programmatic Private Marketplace (PMP) deals on ${SITE_URL}, contact: <strong>ads@townmatrix.com</strong></p>
+        </article>
+      `
+    }),
+    sitemapUrls
+  );
+}
+
 function runBuild() {
   const startTime = Date.now();
   if (fs.existsSync(DIST_DIR)) {
@@ -1651,7 +1766,7 @@ function runBuild() {
   const comparisonPairs = generateComparisonPairs();
   const brandsCount = new Set(vehicles.map((v) => v.brand)).size;
   const yearsCount = new Set(vehicles.map((v) => v.year)).size;
-  const totalPagesCount = 1 + vehicles.length + comparisonPairs.length + trailers.length + brandsCount + yearsCount;
+  const totalPagesCount = 5 + vehicles.length + comparisonPairs.length + trailers.length + brandsCount + yearsCount;
 
   buildHomepage(comparisonPairs, sitemapUrls, totalPagesCount);
   buildVehiclePages(comparisonPairs, sitemapUrls, totalPagesCount);
@@ -1659,6 +1774,7 @@ function runBuild() {
   buildTrailerClassPages(sitemapUrls, totalPagesCount);
   buildBrandPages(sitemapUrls, totalPagesCount);
   buildYearPages(sitemapUrls, totalPagesCount);
+  buildCompliancePages(sitemapUrls, totalPagesCount);
   buildCloudflareEdgeFiles(sitemapUrls, totalPagesCount);
 
   const elapsedMs = Date.now() - startTime;
