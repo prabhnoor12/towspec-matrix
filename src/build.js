@@ -7,8 +7,8 @@ const DATA_DIR = path.join(ROOT_DIR, 'data');
 const SRC_DIR = path.join(ROOT_DIR, 'src');
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
 
-const SITE_URL = 'https://towspecmatrix.com';
-const SITE_NAME = 'TowSpecMatrix';
+const SITE_URL = 'https://townmatrix.com';
+const SITE_NAME = 'TownMatrix';
 
 const vehicles = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'vehicles.json'), 'utf8'));
 const trailers = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'trailers.json'), 'utf8'));
@@ -294,7 +294,7 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
   <header class="site-header">
     <div class="header-inner">
       <a href="/" class="brand-logo">
-        <span>TOWSPECMATRIX</span>
+        <span>TOWNMATRIX</span>
         <span class="brand-badge">2015–2026 SAE J2807</span>
       </a>
       <div class="header-tools">
