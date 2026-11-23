@@ -1531,7 +1531,14 @@ function buildHomepage(comparisonPairs, sitemapUrls, totalPagesCount) {
       '@type': 'Dataset',
       name: '2015-2026 SAE J2807 Truck & SUV Towing Capacity and Payload Matrix',
       description: 'Comprehensive specification dataset of towing capacity, payload limits, GVWR, GCWR, and real-world trailer tongue weight compatibility.',
-      url: `${SITE_URL}/`
+      url: `${SITE_URL}/`,
+      license: 'https://creativecommons.org/licenses/by/4.0/',
+      isAccessibleForFree: true,
+      creator: {
+        '@type': 'Organization',
+        name: SITE_NAME,
+        url: `${SITE_URL}/`
+      }
     },
     mainContent,
     totalPagesCount
