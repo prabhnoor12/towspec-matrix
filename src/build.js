@@ -313,6 +313,10 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
           <a href="/brands/ford/">Ford</a>
           <a href="/brands/chevrolet/">Chevy</a>
           <a href="/brands/toyota/">Toyota</a>
+          <a href="/tools/cat-scale-calculator/">CAT Scale</a>
+          <a href="/tools/altitude-mountain-towing/">Mountain Grade</a>
+          <a href="/tools/tow-checklist/">Tow Checklist</a>
+          <button type="button" id="btn-open-garage" class="garage-btn" aria-label="Open My Garage shortlist">📌 My Garage (<span id="garage-count">0</span>)</button>
           <button type="button" id="theme-toggle-btn" class="theme-btn" aria-label="Switch color scheme">☾ Dark</button>
         </nav>
       </div>
@@ -328,6 +332,15 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
   <div class="layout-shell">
     <main id="main-content">
       ${mainContent}
+      <section class="sister-widget deferred-section" aria-label="Sister Engineering Portals">
+        <h3 style="margin:0;font-size:0.95rem;">🔗 Complete Your RV, Garage &amp; Off-Grid Setup</h3>
+        <div class="sister-grid">
+          <a class="sister-card" href="https://wattsurgematrix.com" rel="noopener"><strong>🔋 WattSurgeMatrix.com</strong>Boondocking in your trailer? Check if your EcoFlow/Jackery/Honda runs the RV AC &amp; Starlink →</a>
+          <a class="sister-card" href="https://slabyardmatrix.com" rel="noopener"><strong>🧱 SlabYardMatrix.com</strong>Building a 12×35 concrete or gravel RV parking pad? Calculate exact yards, bags &amp; tons →</a>
+          <a class="sister-card" href="https://wiresizematrix.com" rel="noopener"><strong>⚡ WireSizeMatrix.com</strong>Installing a 30A TT-30 or 50A NEMA 14-50 RV pedestal at home? Size exact NEC wire gauge →</a>
+          <a class="sister-card" href="https://minisplitbtumatrix.com" rel="noopener"><strong>❄️ MiniSplitBTUMatrix.com</strong>Cooling a parked RV, barn, or detached tow-rig garage? Size exact mini-split BTU →</a>
+        </div>
+      </section>
     </main>
 
     <aside class="ad-rail-sticky" aria-label="Sidebar Calculations & Sponsored Units">
@@ -374,6 +387,19 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
   </footer>
 
   ${renderAdUnit('anchor', 'bottom-sticky-anchor', 2)}
+
+  <div class="binder-backdrop" id="garage-backdrop"></div>
+  <aside class="binder-drawer" id="garage-drawer" aria-label="My Garage and Trailer Shortlist">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-block-end:2px solid var(--text);padding-block-end:0.6rem;margin-block-end:0.75rem;">
+      <strong style="font-family:var(--font-mono);font-size:0.95rem;">📌 My Garage Shortlist</strong>
+      <button type="button" id="btn-close-garage" class="theme-btn">✕ Close</button>
+    </div>
+    <p style="font-size:0.8rem;color:var(--text-muted);margin-block-start:0;">Saved locally in your browser so you can compare your shortlisted trucks &amp; trailers right on the dealership lot.</p>
+    <div style="margin-block-end:0.75rem;">
+      <a href="/tools/garage-compare/" class="garage-btn" style="text-decoration:none;inline-size:100%;justify-content:center;">Compare Saved Trucks Side-by-Side →</a>
+    </div>
+    <div id="garage-items-list"></div>
+  </aside>
 
   <script defer src="/assets/${hashedJsFilename}"></script>
 </body>
@@ -531,6 +557,7 @@ function buildVehiclePages(comparisonPairs, sitemapUrls, totalPagesCount) {
         <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:0.5rem;margin-block-end:0.5rem;">
           <h2 style="border:none;margin:0;padding:0;">Interactive Rig, Tongue Weight & Payload Simulator</h2>
           <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
+            <button type="button" id="btn-save-garage" class="garage-btn">📌 Save to My Garage</button>
             <button type="button" id="btn-copy-rig-link" class="preset-btn">Copy Shareable Rig Link</button>
             <button type="button" id="btn-print-worksheet" class="preset-btn">⎙ Print Rig Worksheet</button>
           </div>
@@ -659,6 +686,16 @@ function buildVehiclePages(comparisonPairs, sitemapUrls, totalPagesCount) {
             <span class="kpi-label">True Max Safe Trailer</span>
             <span class="kpi-value" id="out-max-real-trailer">--</span>
             <span class="kpi-sub">With Current Cab/Bed Load</span>
+          </div>
+        </div>
+
+        <div class="next-tools-bar">
+          <strong style="font-size:0.82rem;font-family:var(--font-mono);">NEXT-STEP TOWING VERIFICATION TOOLS FOR THIS RIG:</strong>
+          <div class="next-tools-grid">
+            <a class="next-tool-link" href="/tools/cat-scale-calculator/?gvwr=${v.gvwrLbs}&amp;gcwr=${v.gcwrLbs}&amp;tow=${v.maxTowLbs}&amp;name=${encodeURIComponent(fullTitle)}"><strong>⚖️ Verify CAT Scale Ticket →</strong>Check actual Steer, Drive &amp; Trailer axle weights + WDH transfer</a>
+            <a class="next-tool-link" href="/tools/altitude-mountain-towing/?tow=${v.maxTowLbs}&amp;hp=${v.horsepower}&amp;engine=${encodeURIComponent(v.engine)}&amp;name=${encodeURIComponent(fullTitle)}"><strong>🏔️ Mountain Grade &amp; Elevation →</strong>Calculate high-altitude SAE J2807 power loss (6%–8% grades)</a>
+            <a class="next-tool-link" href="/tools/tow-checklist/"><strong>✅ Pre-Trip Hitch Checklist →</strong>Auto-saved 12-point RV departure &amp; brake controller check</a>
+            <a class="next-tool-link" href="/tools/garage-compare/"><strong>📌 Compare Saved Shortlist →</strong>View all your bookmarked trucks side-by-side in My Garage</a>
           </div>
         </div>
       </section>
@@ -1758,6 +1795,210 @@ function buildCompliancePages(sitemapUrls, totalPagesCount) {
   );
 }
 
+function buildDedicatedToolPages(sitemapUrls, totalPagesCount) {
+  const datasetCreator = { '@type': 'Organization', name: SITE_NAME, url: `${SITE_URL}/` };
+
+  // TOOL 1: CAT Scale Weigh-Station Ticket & Axle Weight Calculator (/tools/cat-scale-calculator/)
+  writePage(
+    'tools/cat-scale-calculator',
+    renderLayout({
+      title: `CAT Scale Weight Calculator: Steer, Drive & Trailer Axle + WDH Verification — ${SITE_NAME}`,
+      description: `Enter your 3 CAT Scale ticket weights (Steer Axle, Drive Axle, Trailer Axle) to check legal GVWR, GCWR, FAWR, RAWR, tongue weight percentage, and Weight Distribution Hitch restoration.`,
+      canonicalPath: 'tools/cat-scale-calculator',
+      breadcrumbs: [
+        { label: 'Home', url: '/' },
+        { label: 'Towing Tools', url: '/tools/cat-scale-calculator/' },
+        { label: 'CAT Scale Ticket Calculator', url: '/tools/cat-scale-calculator/' }
+      ],
+      schemaJson: [
+        { '@context': 'https://schema.org', '@type': 'WebApplication', name: 'CAT Scale Weigh-Station Axle Weight Calculator', url: `${SITE_URL}/tools/cat-scale-calculator/`, applicationCategory: 'UtilitiesApplication' },
+        { '@context': 'https://schema.org', '@type': 'Dataset', name: 'CAT Scale Axle & WDH Verification Matrix', description: 'Interactive truck and travel trailer CAT Scale weigh-station axle compliance calculator.', url: `${SITE_URL}/tools/cat-scale-calculator/`, isAccessibleForFree: true, license: 'https://creativecommons.org/licenses/by/4.0/', creator: datasetCreator }
+      ],
+      totalPagesCount,
+      mainContent: `
+        <article id="hero-panel" class="panel isolated-widget">
+          <span class="brand-badge">SAE J2807 WEIGH-STATION AUDIT</span>
+          <h1>CAT Scale Ticket &amp; Axle Weight Distribution Calculator</h1>
+          <p class="subtitle">Weighed your loaded truck &amp; camper at a truck stop? Enter your 3 CAT Scale ticket pads below (plus your unloaded truck weight) to verify <strong>GVWR, GCWR, Rear Axle (RAWR), Tongue Weight %, and WDH front-axle restoration</strong>.</p>
+          <div id="cat-scale-rig-badge" style="font-family:var(--font-mono);font-size:0.82rem;font-weight:700;margin-block-end:0.6rem;"></div>
+
+          <section id="tool-cat-scale">
+            <div class="tool-input-grid">
+              <div class="tool-field"><label for="cs-steer">Pad 1: Steer Axle Loaded (lbs)</label><input id="cs-steer" type="number" min="1500" max="9000" value="3180"></div>
+              <div class="tool-field"><label for="cs-drive">Pad 2: Drive / Rear Axle Loaded (lbs)</label><input id="cs-drive" type="number" min="1500" max="11000" value="3640"></div>
+              <div class="tool-field"><label for="cs-trailer">Pad 3: Trailer Axles Loaded (lbs)</label><input id="cs-trailer" type="number" min="500" max="25000" value="6420"></div>
+              <div class="tool-field"><label for="cs-truck-only">Truck Only Total Weight (No Trailer, lbs)</label><input id="cs-truck-only" type="number" min="3000" max="12000" value="5880"></div>
+              <div class="tool-field"><label for="cs-gvwr">Truck Door-Sticker GVWR (lbs)</label><input id="cs-gvwr" type="number" min="4000" max="16000" value="7050"></div>
+              <div class="tool-field"><label for="cs-rawr">Truck Rear Axle Rating RAWR (lbs)</label><input id="cs-rawr" type="number" min="2500" max="11000" value="3800"></div>
+              <div class="tool-field"><label for="cs-gcwr">Truck Max GCWR (lbs)</label><input id="cs-gcwr" type="number" min="8000" max="40000" value="16200"></div>
+              <div class="tool-field"><label for="cs-steer-unloaded">Truck Steer Axle Unloaded (Optional WDH Check)</label><input id="cs-steer-unloaded" type="number" min="1500" max="8000" value="3260"></div>
+            </div>
+
+            <div class="verdict-banner" id="cs-verdict" data-status="safe" role="status" aria-live="polite">
+              <div class="verdict-title"><span id="cs-verdict-title">Evaluating CAT Scale Compliance...</span><span class="badge badge-safe" id="cs-verdict-badge">READY</span></div>
+              <p id="cs-verdict-desc" style="margin:0;font-size:0.88rem;"></p>
+            </div>
+
+            <div class="spec-kpi-grid">
+              <div class="kpi-box highlight"><span class="kpi-label">Actual Tongue Weight</span><span class="kpi-value" id="cs-out-tongue">--</span><span class="kpi-sub" id="cs-out-tongue-pct">--% of trailer</span></div>
+              <div class="kpi-box"><span class="kpi-label">Total Trailer Weight</span><span class="kpi-value" id="cs-out-gtw">--</span><span class="kpi-sub">Trailer Axles + Tongue</span></div>
+              <div class="kpi-box"><span class="kpi-label">Truck GVWR Headroom</span><span class="kpi-value" id="cs-out-gvwr">--</span><span class="kpi-sub">Steer + Drive vs GVWR</span></div>
+              <div class="kpi-box"><span class="kpi-label">Rear Axle (RAWR) Margin</span><span class="kpi-value" id="cs-out-rawr">--</span><span class="kpi-sub" id="cs-out-wdh">WDH Check</span></div>
+            </div>
+
+            <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-block-top:0.6rem;">
+              <button type="button" id="btn-save-cat-ticket" class="garage-btn">📌 Save CAT Scale Ticket</button>
+              <button type="button" onclick="window.print()" class="preset-btn">⎙ Print Scale Audit</button>
+            </div>
+            <div id="cat-ticket-history" style="margin-block-start:1rem;"></div>
+          </section>
+        </article>
+      `
+    }),
+    sitemapUrls
+  );
+
+  // TOOL 2: SAE J2807 Altitude & Mountain Grade Towing Derating (/tools/altitude-mountain-towing/)
+  writePage(
+    'tools/altitude-mountain-towing',
+    renderLayout({
+      title: `High-Altitude & Mountain Grade Towing Derating Calculator (SAE J2807) — ${SITE_NAME}`,
+      description: `Calculate real horsepower and towing capacity loss at high elevations (Rockies, Eisenhower Tunnel, I-70) for Naturally Aspirated V8/V6 vs Turbocharged EcoBoost & Turbo-Diesel trucks.`,
+      canonicalPath: 'tools/altitude-mountain-towing',
+      breadcrumbs: [
+        { label: 'Home', url: '/' },
+        { label: 'Towing Tools', url: '/tools/altitude-mountain-towing/' },
+        { label: 'Mountain Grade & Altitude Derating', url: '/tools/altitude-mountain-towing/' }
+      ],
+      schemaJson: [
+        { '@context': 'https://schema.org', '@type': 'WebApplication', name: 'Mountain Grade & Elevation Towing Derating Calculator', url: `${SITE_URL}/tools/altitude-mountain-towing/`, applicationCategory: 'UtilitiesApplication' },
+        { '@context': 'https://schema.org', '@type': 'Dataset', name: 'Elevation & Grade Towing Derating Dataset', description: 'Atmospheric air-density power loss and grade gravity drag calculations for towing vehicles.', url: `${SITE_URL}/tools/altitude-mountain-towing/`, isAccessibleForFree: true, license: 'https://creativecommons.org/licenses/by/4.0/', creator: datasetCreator }
+      ],
+      totalPagesCount,
+      mainContent: `
+        <article id="hero-panel" class="panel isolated-widget">
+          <span class="brand-badge">HIGH-ELEVATION &amp; 6%–8% GRADE PHYSICS</span>
+          <h1>Mountain Grade &amp; High-Altitude Towing Derating Calculator</h1>
+          <p class="subtitle">Crossing the Rockies, I-70 Eisenhower Tunnel (11,158 ft), or Sierra Nevada? Naturally aspirated gas engines lose <strong>~3% power per 1,000 ft of elevation</strong>, while turbo gas &amp; diesel engines compensate via boost (~1% loss per 1,000 ft).</p>
+          <div id="alt-rig-badge" style="font-family:var(--font-mono);font-size:0.82rem;font-weight:700;margin-block-end:0.6rem;"></div>
+
+          <section id="tool-altitude">
+            <div class="tool-input-grid">
+              <div class="tool-field"><label for="alt-tow">Factory Sea-Level Tow Rating (lbs)</label><input id="alt-tow" type="number" min="2000" max="38000" value="10500"></div>
+              <div class="tool-field"><label for="alt-trailer">Your Loaded Trailer Weight (lbs)</label><input id="alt-trailer" type="number" min="1000" max="30000" value="7500"></div>
+              <div class="tool-field"><label for="alt-engine-type">Engine Aspiration Type</label>
+                <select id="alt-engine-type">
+                  <option value="na">Naturally Aspirated Gas (V8 / V6 — 3% loss / 1,000 ft)</option>
+                  <option value="turbo">Turbocharged Gas (EcoBoost / i-FORCE MAX — 1% loss / 1,000 ft)</option>
+                  <option value="diesel">Turbo-Diesel (Power Stroke / Duramax / Cummins — 0.8% loss / 1,000 ft)</option>
+                </select>
+              </div>
+              <div class="tool-field"><label for="alt-elev">Peak Pass Elevation: <strong id="alt-elev-val">7,000 ft</strong></label><input id="alt-elev" type="range" min="0" max="12000" step="500" value="7000"></div>
+              <div class="tool-field"><label for="alt-grade">Steepest Highway Grade: <strong id="alt-grade-val">6%</strong></label><input id="alt-grade" type="range" min="0" max="10" step="1" value="6"></div>
+              <div class="tool-field"><label for="alt-temp">Ambient Summer Temp (°F)</label><input id="alt-temp" type="number" min="20" max="120" value="90"></div>
+            </div>
+
+            <div class="verdict-banner" id="alt-verdict" data-status="safe" role="status" aria-live="polite">
+              <div class="verdict-title"><span id="alt-verdict-title">Calculating Mountain Pass Margin...</span><span class="badge badge-safe" id="alt-verdict-badge">READY</span></div>
+              <p id="alt-verdict-desc" style="margin:0;font-size:0.88rem;"></p>
+            </div>
+
+            <div class="spec-kpi-grid">
+              <div class="kpi-box highlight"><span class="kpi-label">Elevation-Adjusted Tow Limit</span><span class="kpi-value" id="alt-out-limit">--</span><span class="kpi-sub">Effective safe pull rating</span></div>
+              <div class="kpi-box"><span class="kpi-label">Engine Power Retained</span><span class="kpi-value" id="alt-out-pwr">--</span><span class="kpi-sub">Air-density + heat factor</span></div>
+              <div class="kpi-box"><span class="kpi-label">Gravity Pull Resistance</span><span class="kpi-value" id="alt-out-drag">--</span><span class="kpi-sub">Extra grade pulling force</span></div>
+              <div class="kpi-box"><span class="kpi-label">Target Climb Speed</span><span class="kpi-value" id="alt-out-speed">--</span><span class="kpi-sub">Keeps trans oil &lt; 225°F</span></div>
+            </div>
+          </section>
+        </article>
+      `
+    }),
+    sitemapUrls
+  );
+
+  // TOOL 3: Auto-Saved Pre-Trip Hitch & RV Safety Checklist (/tools/tow-checklist/)
+  const checkItems = [
+    ['ball', 'Coupler fully seated over hitch ball, latch locked & safety pin inserted'],
+    ['wdh', 'Weight Distribution Hitch (WDH) spring bars snapped up & sway control engaged'],
+    ['chains', 'Safety chains crossed in an "X" pattern under tongue (not dragging asphalt)'],
+    ['breakaway', 'Emergency breakaway switch cable clipped to truck frame (NOT safety chain loop)'],
+    ['plug', '7-way trailer wiring plug locked in — test left/right turn, brake & running lights'],
+    ['brakegain', 'Tug-test trailer brakes manually via in-cab brake controller at 5 MPH'],
+    ['tires', 'Cold tire PSI checked on all 4 truck tires AND trailer tires + spare tire'],
+    ['lugs', 'Trailer wheel lug nuts torqued to spec (typically 90–120 ft-lbs)'],
+    ['jacks', 'Tongue jack, stabilizer jacks, wheel chocks & entry steps fully retracted'],
+    ['propane', 'Propane cylinders shut off, awning locked, roof vents closed & TV antenna down'],
+    ['mirrors', 'Tow mirrors extended & adjusted for full blind-spot + trailer tire visibility'],
+    ['sticker', 'Loaded cargo verified below yellow door-jamb payload sticker & rear axle rating']
+  ];
+  writePage(
+    'tools/tow-checklist',
+    renderLayout({
+      title: `Pre-Trip Towing & RV Hitch Safety Checklist (Auto-Saved & Printable) — ${SITE_NAME}`,
+      description: `Bookmarkable 12-point pre-departure towing, Weight Distribution Hitch, breakaway cable, and brake controller safety checklist saved automatically in your browser for every camping trip.`,
+      canonicalPath: 'tools/tow-checklist',
+      breadcrumbs: [
+        { label: 'Home', url: '/' },
+        { label: 'Towing Tools', url: '/tools/tow-checklist/' },
+        { label: 'Pre-Trip Hitch Checklist', url: '/tools/tow-checklist/' }
+      ],
+      schemaJson: { '@context': 'https://schema.org', '@type': 'WebApplication', name: 'Pre-Trip RV & Trailer Hitch Safety Checklist', url: `${SITE_URL}/tools/tow-checklist/`, applicationCategory: 'UtilitiesApplication' },
+      totalPagesCount,
+      mainContent: `
+        <article id="hero-panel" class="panel isolated-widget">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:0.5rem;">
+            <div>
+              <span class="brand-badge">BOOKMARK FOR EVERY TRIP</span>
+              <h1 style="margin-block-end:0.25rem;">12-Point Pre-Trip Hitch &amp; RV Departure Checklist</h1>
+            </div>
+            <div style="display:flex;gap:0.45rem;flex-wrap:wrap;">
+              <button type="button" id="btn-reset-tow-check" class="preset-btn">↺ Reset for Next Trip</button>
+              <button type="button" onclick="window.print()" class="garage-btn">⎙ Print Glovebox Copy</button>
+            </div>
+          </div>
+          <p class="subtitle">Check off each safety step before pulling out of the driveway or campsite. Your progress saves automatically in your phone browser.</p>
+          <div class="verdict-banner" id="tow-check-banner" data-status="warn" role="status">
+            <div class="verdict-title"><span id="tow-check-status">0 / 12 Safety Checks Complete</span><span class="badge badge-warn" id="tow-check-badge">IN PROGRESS</span></div>
+          </div>
+          <div id="tool-tow-checklist">
+            ${checkItems.map(([id, text], idx) => `
+              <div class="checklist-row" data-chk-id="${id}">
+                <input type="checkbox" id="tchk-${id}" style="margin-top:0.2rem;transform:scale(1.2);">
+                <label for="tchk-${id}"><strong>${idx + 1}.</strong> ${text}</label>
+              </div>`).join('')}
+          </div>
+        </article>
+      `
+    }),
+    sitemapUrls
+  );
+
+  // TOOL 4: My Garage Side-by-Side Comparison Hub (/tools/garage-compare/)
+  writePage(
+    'tools/garage-compare',
+    renderLayout({
+      title: `My Garage Shortlist: Compare Your Saved Trucks & Trailers Side-by-Side — ${SITE_NAME}`,
+      description: `Compare all the trucks and SUVs you saved to My Garage side by side by Max Tow, Payload Capacity, GVWR, GCWR, and real-world travel trailer headroom.`,
+      canonicalPath: 'tools/garage-compare',
+      breadcrumbs: [
+        { label: 'Home', url: '/' },
+        { label: 'My Garage Shortlist', url: '/tools/garage-compare/' }
+      ],
+      schemaJson: { '@context': 'https://schema.org', '@type': 'WebApplication', name: 'My Garage Saved Trucks Side-by-Side Comparison', url: `${SITE_URL}/tools/garage-compare/`, applicationCategory: 'UtilitiesApplication' },
+      totalPagesCount,
+      mainContent: `
+        <article id="hero-panel" class="panel isolated-widget">
+          <span class="brand-badge">DEALERSHIP COMPARISON HUB</span>
+          <h1>My Garage — Saved Trucks &amp; Trailer Shortlist</h1>
+          <p class="subtitle">Every truck you bookmark with <strong>📌 Save to My Garage</strong> appears below in a clean side-by-side comparison table so you can compare payloads right on the dealership lot.</p>
+          <div id="tool-garage-compare"></div>
+        </article>
+      `
+    }),
+    sitemapUrls
+  );
+}
+
 function runBuild() {
   const startTime = Date.now();
   if (fs.existsSync(DIST_DIR)) {
@@ -1773,7 +2014,7 @@ function runBuild() {
   const comparisonPairs = generateComparisonPairs();
   const brandsCount = new Set(vehicles.map((v) => v.brand)).size;
   const yearsCount = new Set(vehicles.map((v) => v.year)).size;
-  const totalPagesCount = 5 + vehicles.length + comparisonPairs.length + trailers.length + brandsCount + yearsCount;
+  const totalPagesCount = 9 + vehicles.length + comparisonPairs.length + trailers.length + brandsCount + yearsCount;
 
   buildHomepage(comparisonPairs, sitemapUrls, totalPagesCount);
   buildVehiclePages(comparisonPairs, sitemapUrls, totalPagesCount);
@@ -1781,6 +2022,7 @@ function runBuild() {
   buildTrailerClassPages(sitemapUrls, totalPagesCount);
   buildBrandPages(sitemapUrls, totalPagesCount);
   buildYearPages(sitemapUrls, totalPagesCount);
+  buildDedicatedToolPages(sitemapUrls, totalPagesCount);
   buildCompliancePages(sitemapUrls, totalPagesCount);
   buildCloudflareEdgeFiles(sitemapUrls, totalPagesCount);
 

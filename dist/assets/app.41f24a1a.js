@@ -684,6 +684,256 @@ hudState.textContent = userIsEngaged ? 'ACTIVE VIEW (TIMER RUNNING)' : 'IDLE (PA
 }
 }, 1000);
 }
+function initTownRetentionAndTools() {
+const GARAGE_KEY = 'townmatrix-garage-v1';
+const getGarage = () => { try { return JSON.parse(localStorage.getItem(GARAGE_KEY) || '[]'); } catch (_) { return []; } };
+const setGarage = (arr) => { try { localStorage.setItem(GARAGE_KEY, JSON.stringify(arr)); } catch (_) {} };
+const drawer = document.getElementById('garage-drawer');
+const backdrop = document.getElementById('garage-backdrop');
+const countEl = document.getElementById('garage-count');
+const listEl = document.getElementById('garage-items-list');
+const renderGarageDrawer = () => {
+const items = getGarage();
+if (countEl) countEl.textContent = String(items.length);
+if (listEl) {
+if (!items.length) {
+listEl.innerHTML = '<p style="font-size:0.82rem;color:var(--text-muted);">No trucks saved yet. Open any truck page and click <strong>📌 Save to My Garage</strong> to compare rigs on the dealership lot.</p>';
+} else {
+listEl.innerHTML = items.map((it, idx) => `
+<div class="binder-item">
+<strong>${it.name}</strong>
+<div style="font-family:var(--font-mono);margin-block-start:0.25rem;">Tow: ${fmtNum.format(it.maxTow)} lbs • Payload: ${fmtNum.format(it.maxPayload)} lbs</div>
+<div style="font-size:0.75rem;color:var(--text-muted);">Trailer Tested: ${fmtNum.format(it.trailer)} lbs • Saved ${it.date}</div>
+<div style="display:flex;gap:0.4rem;margin-block-start:0.45rem;">
+<a href="${it.url}" class="preset-btn" style="text-decoration:none;">Open Rig →</a>
+<button type="button" class="preset-btn" data-del-garage="${idx}">Remove</button>
+</div>
+</div>`).join('');
+}
+}
+const cmpEl = document.getElementById('tool-garage-compare');
+if (cmpEl) {
+if (!items.length) {
+cmpEl.innerHTML = `<div class="verdict-banner" data-status="warn"><div class="verdict-title"><span>Your Garage Shortlist Is Empty</span></div><p style="margin:0;font-size:0.86rem;">Browse any truck on <a href="/">TownMatrix</a> and click <strong>📌 Save to My Garage</strong> to compare them side by side here.</p></div>`;
+} else {
+cmpEl.innerHTML = `<div class="table-wrapper"><table>
+<thead><tr><th>Saved Vehicle</th><th>Max Tow</th><th>Payload</th><th>GVWR / GCWR</th><th>Tested Trailer</th><th>Actions</th></tr></thead>
+<tbody>${items.map((it, i) => `<tr>
+<th scope="row"><a href="${it.url}">${it.name}</a></th>
+<td><strong>${fmtNum.format(it.maxTow)} lbs</strong></td>
+<td><strong>${fmtNum.format(it.maxPayload)} lbs</strong></td>
+<td>${fmtNum.format(it.gvwr)} / ${fmtNum.format(it.gcwr)} lbs</td>
+<td>${fmtNum.format(it.trailer)} lbs</td>
+<td><button type="button" class="preset-btn" data-del-garage="${i}">Remove</button></td>
+</tr>`).join('')}</tbody></table></div>`;
+}
+}
+};
+const openDrawer = () => { drawer?.classList.add('open'); backdrop?.classList.add('open'); renderGarageDrawer(); };
+const closeDrawer = () => { drawer?.classList.remove('open'); backdrop?.classList.remove('open'); };
+document.getElementById('btn-open-garage')?.addEventListener('click', openDrawer);
+document.getElementById('btn-close-garage')?.addEventListener('click', closeDrawer);
+backdrop?.addEventListener('click', closeDrawer);
+document.getElementById('btn-save-garage')?.addEventListener('click', () => {
+const calc = document.getElementById('rig-calculator');
+if (!calc) return;
+const name = calc.dataset.vehicleName || document.querySelector('h1')?.textContent || 'Saved Truck';
+const customP = Number(document.getElementById('input-custom-payload')?.value || 0);
+const maxPayload = customP >= 400 ? customP : Number(calc.dataset.maxPayload || 0);
+const maxTow = Number(calc.dataset.maxTow || 0);
+const gvwr = Number(calc.dataset.gvwr || 0);
+const gcwr = Number(calc.dataset.gcwr || 0);
+const trailer = Number(document.getElementById('input-trailer-lbs')?.value || 7000);
+const items = getGarage().filter((x) => x.url !== window.location.pathname);
+items.unshift({ name, maxTow, maxPayload, gvwr, gcwr, trailer, url: window.location.pathname, date: new Date().toLocaleDateString() });
+setGarage(items.slice(0, 15));
+renderGarageDrawer();
+openDrawer();
+});
+document.addEventListener('click', (e) => {
+const del = e.target.closest('button[data-del-garage]');
+if (!del) return;
+const items = getGarage();
+items.splice(Number(del.dataset.delGarage), 1);
+setGarage(items);
+renderGarageDrawer();
+});
+renderGarageDrawer();
+const csRoot = document.getElementById('tool-cat-scale');
+if (csRoot) {
+const p = new URLSearchParams(window.location.search);
+if (p.get('gvwr')) document.getElementById('cs-gvwr').value = p.get('gvwr');
+if (p.get('gcwr')) document.getElementById('cs-gcwr').value = p.get('gcwr');
+if (p.get('name')) {
+const b = document.getElementById('cat-scale-rig-badge');
+if (b) b.textContent = `Pre-loaded Vehicle Spec: ${p.get('name')}`;
+}
+const syncCat = () => {
+const steer = Number(document.getElementById('cs-steer')?.value || 0);
+const drive = Number(document.getElementById('cs-drive')?.value || 0);
+const trl = Number(document.getElementById('cs-trailer')?.value || 0);
+const truckOnly = Number(document.getElementById('cs-truck-only')?.value || 0);
+const gvwr = Number(document.getElementById('cs-gvwr')?.value || 7050);
+const rawr = Number(document.getElementById('cs-rawr')?.value || 3800);
+const gcwr = Number(document.getElementById('cs-gcwr')?.value || 16200);
+const steerUnloaded = Number(document.getElementById('cs-steer-unloaded')?.value || 0);
+const loadedTruck = steer + drive;
+const tongue = Math.max(0, loadedTruck - truckOnly);
+const totalTrailer = trl + tongue;
+const tonguePct = totalTrailer > 0 ? ((tongue / totalTrailer) * 100).toFixed(1) : '0.0';
+const gvwrMargin = gvwr - loadedTruck;
+const rawrMargin = rawr - drive;
+const combined = loadedTruck + trl;
+const gcwrMargin = gcwr - combined;
+const steerDiff = steerUnloaded > 0 ? steer - steerUnloaded : 0;
+document.getElementById('cs-out-tongue').textContent = `${fmtNum.format(tongue)} lbs`;
+document.getElementById('cs-out-tongue-pct').textContent = `${tonguePct}% of trailer (Ideal 10%–15%)`;
+document.getElementById('cs-out-gtw').textContent = `${fmtNum.format(totalTrailer)} lbs`;
+document.getElementById('cs-out-gvwr').textContent = `${gvwrMargin >= 0 ? '+' : ''}${fmtNum.format(gvwrMargin)} lbs`;
+document.getElementById('cs-out-rawr').textContent = `${rawrMargin >= 0 ? '+' : ''}${fmtNum.format(rawrMargin)} lbs`;
+document.getElementById('cs-out-wdh').textContent = steerUnloaded > 0
+? (steerDiff < -120 ? `Steer light by ${Math.abs(steerDiff)} lbs (Tighten WDH)` : `Steer within ${Math.abs(steerDiff)} lbs (Good WDH)`)
+: 'Enter unloaded steer for WDH check';
+const vb = document.getElementById('cs-verdict');
+const vt = document.getElementById('cs-verdict-title');
+const vbg = document.getElementById('cs-verdict-badge');
+const vd = document.getElementById('cs-verdict-desc');
+const over = gvwrMargin < 0 || rawrMargin < 0 || gcwrMargin < 0;
+const swayRisk = Number(tonguePct) < 10 && totalTrailer > 0;
+if (over) {
+vb.dataset.status = 'danger'; vbg.className = 'badge badge-danger'; vbg.textContent = 'OVERWEIGHT';
+vt.textContent = 'AXLE OR GVWR LIMIT EXCEEDED ON CAT SCALE';
+vd.textContent = `Loaded truck (${fmtNum.format(loadedTruck)} lbs) or rear axle (${fmtNum.format(drive)} lbs) exceeds legal sticker ratings. Shift cargo behind trailer axles or tighten WDH bars.`;
+} else if (swayRisk) {
+vb.dataset.status = 'warn'; vbg.className = 'badge badge-warn'; vbg.textContent = 'SWAY RISK';
+vt.textContent = `LOW TONGUE WEIGHT (${tonguePct}%) — HIGH TRAILER SWAY RISK`;
+vd.textContent = 'Tongue weight under 10% causes dangerous highway trailer whip. Move heavy gear forward of the trailer axles to reach 12%–13%.';
+} else {
+vb.dataset.status = 'safe'; vbg.className = 'badge badge-safe'; vbg.textContent = 'LEGAL & BALANCED';
+vt.textContent = `ALL AXLES LEGAL — ${fmtNum.format(combined)} lbs Combined (GCWR Headroom: +${fmtNum.format(gcwrMargin)} lbs)`;
+vd.textContent = `Steer (${fmtNum.format(steer)} lbs), Drive (${fmtNum.format(drive)} lbs), and Tongue (${tonguePct}%) all sit safely inside legal ratings.`;
+}
+};
+csRoot.querySelectorAll('input').forEach((el) => el.addEventListener('input', syncCat));
+syncCat();
+const TICKET_KEY = 'townmatrix-cat-tickets-v1';
+const renderTickets = () => {
+const wrap = document.getElementById('cat-ticket-history');
+if (!wrap) return;
+let tix = [];
+try { tix = JSON.parse(localStorage.getItem(TICKET_KEY) || '[]'); } catch (_) {}
+if (!tix.length) { wrap.innerHTML = ''; return; }
+wrap.innerHTML = `<h3 style="margin:0 0 0.4rem;font-size:0.88rem;">Saved CAT Scale Weigh History</h3>` +
+tix.map((t) => `<div class="binder-item"><strong>${t.label}</strong> (${t.date}) — Steer ${t.steer} | Drive ${t.drive} | Trailer ${t.trl} | Tongue ${t.tongue}</div>`).join('');
+};
+document.getElementById('btn-save-cat-ticket')?.addEventListener('click', () => {
+const label = window.prompt('Label this CAT Scale weigh-in (e.g., Full Water + WDH 4 Links):', 'Loaded Trip Weigh-In');
+if (!label) return;
+let tix = [];
+try { tix = JSON.parse(localStorage.getItem(TICKET_KEY) || '[]'); } catch (_) {}
+tix.unshift({
+label,
+date: new Date().toLocaleDateString(),
+steer: document.getElementById('cs-steer')?.value,
+drive: document.getElementById('cs-drive')?.value,
+trl: document.getElementById('cs-trailer')?.value,
+tongue: document.getElementById('cs-out-tongue')?.textContent
+});
+try { localStorage.setItem(TICKET_KEY, JSON.stringify(tix.slice(0, 10))); } catch (_) {}
+renderTickets();
+});
+renderTickets();
+}
+const altRoot = document.getElementById('tool-altitude');
+if (altRoot) {
+const p = new URLSearchParams(window.location.search);
+if (p.get('tow')) document.getElementById('alt-tow').value = p.get('tow');
+if (p.get('engine')) {
+const eng = p.get('engine').toLowerCase();
+const sel = document.getElementById('alt-engine-type');
+if (eng.includes('diesel') || eng.includes('duramax') || eng.includes('cummins') || eng.includes('power stroke')) sel.value = 'diesel';
+else if (eng.includes('turbo') || eng.includes('ecoboost') || eng.includes('i-force')) sel.value = 'turbo';
+}
+if (p.get('name')) {
+const b = document.getElementById('alt-rig-badge');
+if (b) b.textContent = `Pre-loaded Rig: ${p.get('name')} (${p.get('engine') || ''})`;
+}
+const syncAlt = () => {
+const baseTow = Number(document.getElementById('alt-tow')?.value || 10000);
+const trailer = Number(document.getElementById('alt-trailer')?.value || 7500);
+const type = document.getElementById('alt-engine-type')?.value || 'na';
+const elev = Number(document.getElementById('alt-elev')?.value || 7000);
+const grade = Number(document.getElementById('alt-grade')?.value || 6);
+const temp = Number(document.getElementById('alt-temp')?.value || 90);
+document.getElementById('alt-elev-val').textContent = `${fmtNum.format(elev)} ft`;
+document.getElementById('alt-grade-val').textContent = `${grade}%`;
+const lossPer1k = type === 'diesel' ? 0.008 : type === 'turbo' ? 0.01 : 0.03;
+const heatPenalty = temp > 85 ? (temp - 85) * 0.0025 : 0;
+const retained = Math.max(0.55, 1 - (elev / 1000) * lossPer1k - heatPenalty);
+const adjLimit = Math.round((baseTow * retained) / 50) * 50;
+const dragForce = Math.round(trailer * (grade / 100));
+const speed = grade >= 7 ? '40–45 MPH (Tow/Haul)' : grade >= 5 ? '48–55 MPH (3rd/4th Gear)' : '60–65 MPH';
+document.getElementById('alt-out-limit').textContent = `${fmtNum.format(adjLimit)} lbs`;
+document.getElementById('alt-out-pwr').textContent = `${Math.round(retained * 100)}%`;
+document.getElementById('alt-out-drag').textContent = `+${fmtNum.format(dragForce)} lbs`;
+document.getElementById('alt-out-speed').textContent = speed;
+const vb = document.getElementById('alt-verdict');
+const vt = document.getElementById('alt-verdict-title');
+const vbg = document.getElementById('alt-verdict-badge');
+const vd = document.getElementById('alt-verdict-desc');
+if (trailer > adjLimit) {
+vb.dataset.status = 'danger'; vbg.className = 'badge badge-danger'; vbg.textContent = 'ALTITUDE OVERLOAD';
+vt.textContent = `TRAILER EXCEEDS ELEVATION-DERATED CAPACITY BY ${fmtNum.format(trailer - adjLimit)} LBS`;
+vd.textContent = `At ${fmtNum.format(elev)} ft and ${temp}°F, your effective cooling & pulling capacity drops to ${fmtNum.format(adjLimit)} lbs. Lock out overdrive gears and watch transmission/coolant temps closely.`;
+} else {
+vb.dataset.status = 'safe'; vbg.className = 'badge badge-safe'; vbg.textContent = 'PASS READY';
+vt.textContent = `SAFE FOR ${grade}% GRADE AT ${fmtNum.format(elev)} FT (+${fmtNum.format(adjLimit - trailer)} LBS RESERVE)`;
+vd.textContent = `Engine retains ${Math.round(retained * 100)}% power. Engage Tow/Haul mode before ascending and use engine braking on the descent.`;
+}
+};
+altRoot.querySelectorAll('input, select').forEach((el) => { el.addEventListener('input', syncAlt); el.addEventListener('change', syncAlt); });
+syncAlt();
+}
+const chkRoot = document.getElementById('tool-tow-checklist');
+if (chkRoot) {
+const CHK_KEY = 'townmatrix-pretrip-v1';
+const rows = Array.from(chkRoot.querySelectorAll('.checklist-row'));
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(CHK_KEY) || '{}'); } catch (_) {}
+const syncChk = () => {
+let done = 0;
+const next = {};
+rows.forEach((r) => {
+const id = r.dataset.chkId;
+const box = r.querySelector('input[type="checkbox"]');
+if (box?.checked) { done++; r.classList.add('done'); } else r.classList.remove('done');
+next[id] = !!box?.checked;
+});
+const banner = document.getElementById('tow-check-banner');
+const st = document.getElementById('tow-check-status');
+const bg = document.getElementById('tow-check-badge');
+if (st) st.textContent = `${done} / ${rows.length} Pre-Trip Safety Checks Complete`;
+if (banner && bg) {
+if (done === rows.length) {
+banner.dataset.status = 'safe'; bg.className = 'badge badge-safe'; bg.textContent = 'CLEARED TO TOW';
+} else {
+banner.dataset.status = 'warn'; bg.className = 'badge badge-warn'; bg.textContent = 'IN PROGRESS';
+}
+}
+try { localStorage.setItem(CHK_KEY, JSON.stringify(next)); } catch (_) {}
+};
+rows.forEach((r) => {
+const box = r.querySelector('input[type="checkbox"]');
+if (saved[r.dataset.chkId] && box) box.checked = true;
+box?.addEventListener('change', syncChk);
+});
+document.getElementById('btn-reset-tow-check')?.addEventListener('click', () => {
+rows.forEach((r) => { const b = r.querySelector('input[type="checkbox"]'); if (b) b.checked = false; });
+syncChk();
+});
+syncChk();
+}
+}
 document.addEventListener('DOMContentLoaded', () => {
 initThemeToggle();
 initQuickJumpSearch();
@@ -691,5 +941,6 @@ initRigCalculator();
 initSortableTables();
 initDirectoryFilter();
 initAdOpsEngine();
+initTownRetentionAndTools();
 });
 })();
