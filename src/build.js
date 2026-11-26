@@ -270,6 +270,14 @@ function renderLayout({ title, description, canonicalPath, breadcrumbs, schemaJs
   <script>try{document.querySelector('meta[name="color-scheme"]').content=localStorage.getItem("color-scheme")??"light dark"}catch(e){}</script>
   <title>${title}</title>
   <meta name="description" content="${description}">
+  <meta name="application-name" content="${SITE_NAME}">
+  <meta property="og:site_name" content="${SITE_NAME}">
+  <meta property="og:title" content="${title}">
+  <meta property="og:description" content="${description}">
+  <meta property="og:url" content="${canonicalUrl}">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="manifest" href="/manifest.json">
   <link rel="canonical" href="${canonicalUrl}">
   <link rel="dns-prefetch" href="//securepubads.g.doubleclick.net">
   <link rel="dns-prefetch" href="//pagead2.googlesyndication.com">
@@ -504,8 +512,16 @@ function buildVehiclePages(comparisonPairs, sitemapUrls, totalPagesCount) {
           <span class="brand-badge">${v.year} MODEL YEAR • ${v.category} • ${v.drivetrain} • ${v.axleRatio} Axle</span>
           <span style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-muted);">Engine: ${v.engine} (${v.horsepower} HP / ${v.torqueLbFt} lb-ft)</span>
         </div>
-        <h1>${fullTitle} Towing Capacity, Payload & GVWR Matrix</h1>
-        <p class="subtitle">Instant SAE J2807 towing vs. payload bottleneck analyzer. Test real-world camper tongue weight, passengers, and bed cargo against factory GVWR (${fmt.format(v.gvwrLbs)} lbs) and GCWR (${fmt.format(v.gcwrLbs)} lbs) ceilings.</p>
+        <h1>${fullTitle} Towing Capacity &amp; Real Payload Limit [Chart]</h1>
+        <p class="subtitle">Brochure max tow is <strong>${fmt.format(v.maxTowLbs)} lbs</strong>, but your <strong>${fmt.format(v.maxPayloadLbs)} lb payload ceiling</strong> caps real-world camper weight at <strong>${fmt.format(realMaxTrailer)} lbs</strong> (with 550 lbs of family/gear &amp; 13% tongue weight). Test your exact trailer below:</p>
+
+        <nav class="year-pill-bar" aria-label="On-Page Jump Sections" style="margin-block-end:0.45rem;">
+          <strong style="font-family:var(--font-mono);font-size:0.74rem;margin-inline-end:0.25rem;">JUMP TO:</strong>
+          <a href="#rig-calculator" class="year-pill">⚡ Payload &amp; Tongue Sim</a>
+          <a href="#camper-fitment-chart" class="year-pill">🚐 8-Camper Fitment Table</a>
+          <a href="#rival-comparisons" class="year-pill">⚔️ Rival Matchups</a>
+          <a href="#payload-math" class="year-pill">📐 SAE J2807 Payload Math</a>
+        </nav>
 
         ${
           modelYearHistory.length > 1
@@ -700,7 +716,7 @@ function buildVehiclePages(comparisonPairs, sitemapUrls, totalPagesCount) {
         </div>
       </section>
 
-      <section class="panel deferred-section">
+      <section class="panel deferred-section" id="camper-fitment-chart">
         <h2>Camper & Trailer Weight-Class Fitment Matrix for ${v.year} ${v.brand} ${v.model}</h2>
         <p class="subtitle">Assumes 500 lbs of passengers/cargo + 85 lb Weight Distribution Hitch. Click any column header to sort:</p>
         <p id="table-sort-status" role="status" class="visually-hidden"></p>
@@ -756,7 +772,7 @@ function buildVehiclePages(comparisonPairs, sitemapUrls, totalPagesCount) {
         </div>
       </section>
 
-      <section class="panel deferred-section">
+      <section class="panel deferred-section" id="rival-comparisons">
         <h2>Head-to-Head Towing Comparisons: ${v.year} ${v.brand} ${v.model} vs. Rivals</h2>
         <p class="subtitle">Compare real-world payload bottlenecks, axle ratios, and torque curves side-by-side:</p>
         <div class="link-cluster-grid">
@@ -800,7 +816,7 @@ function buildVehiclePages(comparisonPairs, sitemapUrls, totalPagesCount) {
         </div>
       </section>
 
-      <section class="panel deferred-section">
+      <section class="panel deferred-section" id="payload-math">
         <h2>Engineering Breakdown: How ${fullTitle} Towing & Payload Math Works</h2>
         <p>When evaluating the <strong>${fullTitle}</strong> with the <strong>${v.engine}</strong> (${v.horsepower} HP / ${v.torqueLbFt} lb-ft torque, ${v.axleRatio} axle ratio), buyers frequently look only at the advertised <strong>${fmt.format(v.maxTowLbs)} lb maximum towing capacity</strong>. However, under SAE J2807 testing standards, factory tow ratings assume a base-trim vehicle with only a 150-lb driver and zero additional cargo or options.</p>
         <h3>1. The Payload Capacity Formula (GVWR minus Curb Weight)</h3>
@@ -813,8 +829,8 @@ Payload-Limited Max Trailer Weight  = Available Payload for Tongue Weight ÷ 0.1
     `;
 
     const html = renderLayout({
-      title: `${fullTitle} Towing Capacity (${fmt.format(v.maxTowLbs)} lbs) & Payload Calculator`,
-      description: `Verified ${fullTitle} towing capacity (${fmt.format(v.maxTowLbs)} lbs), payload limit (${fmt.format(v.maxPayloadLbs)} lbs), GVWR, GCWR, and interactive camper tongue weight simulator.`,
+      title: `${fullTitle} Towing Capacity & Real Payload Limit [Chart]`,
+      description: `Brochure max tow is ${fmt.format(v.maxTowLbs)} lbs, but ${fmt.format(v.maxPayloadLbs)} lb payload caps safe camper weight at ${fmt.format(realMaxTrailer)} lbs! Test your trailer tongue weight, door-jamb sticker & CAT Scale limits →`,
       canonicalPath: `towing/${v.slug}`,
       breadcrumbs: [
         { label: 'Home', url: '/' },
@@ -1052,8 +1068,8 @@ function buildComparisonPages(comparisonPairs, sitemapUrls, totalPagesCount) {
     `;
 
     const html = renderLayout({
-      title: `${titleA} vs. ${titleB} Towing & Payload Comparison (${fmt.format(a.maxTowLbs)} vs ${fmt.format(b.maxTowLbs)} lbs)`,
-      description: `Compare ${titleA} (${a.trim}) vs ${titleB} (${b.trim}) towing capacity, payload limits, GVWR, GCWR, and real-world travel trailer tongue weight margins.`,
+      title: `${titleA} vs ${titleB}: Towing & Payload Winner [Chart]`,
+      description: `${titleA} (${a.trim}) vs ${titleB} (${b.trim}): ${towWinner} wins max tow (+${fmt.format(towDiff)} lbs), while ${payloadWinner} wins payload (+${fmt.format(payloadDiff)} lbs). See real camper limits →`,
       canonicalPath: `compare/${slug}`,
       breadcrumbs: [
         { label: 'Home', url: '/' },
@@ -1179,8 +1195,8 @@ function buildTrailerClassPages(sitemapUrls, totalPagesCount) {
     `;
 
     const html = renderLayout({
-      title: `Best Trucks & SUVs to Tow ${t.title} (${fmt.format(t.weightLbs)} lbs + ${fmt.format(t.tongueWeightLbs)} lb Tongue)`,
-      description: `Complete payload and towing fitment guide for ${t.title}. See which trucks and SUVs safely handle ${fmt.format(t.weightLbs)} lbs and ${fmt.format(t.tongueWeightLbs)} lbs of tongue weight.`,
+      title: `Best Trucks & SUVs to Tow ${t.title} [Payload Ranked]`,
+      description: `Towing a ${fmt.format(t.weightLbs)} lb camper adds ${fmt.format(t.tongueWeightLbs)} lbs of tongue weight (${fmt.format(totalRequiredPayload)} lbs total truck payload needed). See the ${safeCount} vehicles that pass safely →`,
       canonicalPath: `trailers/${t.slug}`,
       breadcrumbs: [
         { label: 'Home', url: '/' },
@@ -1276,8 +1292,8 @@ function buildBrandPages(sitemapUrls, totalPagesCount) {
     `;
 
     const html = renderLayout({
-      title: `${brand} Towing Capacity & Payload Chart (${brandVehicles.length} Models Compared, 2015–2026)`,
-      description: `Compare ${brand} towing capacities, payload ratings, GVWR, and real-world camper tongue weight limits across all ${brandVehicles.length} trims (2015–2026).`,
+      title: `${brand} Towing Capacity & Real Payload Limit Chart [2015–2026]`,
+      description: `Brochure tow ratings vs real payload-capped camper limits across all ${brandVehicles.length} ${brand} trucks & SUVs (2015–2026). Max tow up to ${fmt.format(highestTow.maxTowLbs)} lbs →`,
       canonicalPath: `brands/${bSlug}`,
       breadcrumbs: [
         { label: 'Home', url: '/' },
@@ -1383,8 +1399,8 @@ function buildYearPages(sitemapUrls, totalPagesCount) {
     `;
 
     const html = renderLayout({
-      title: `${year} Truck & SUV Towing Capacity & Payload Chart (${yearVehicles.length} Models Compared)`,
-      description: `Compare ${year} truck and SUV towing capacities, payload ratings, GVWR, and real-world travel trailer limits across ${yearVehicles.length} trims.`,
+      title: `${year} Truck & SUV Towing Capacity vs Payload Chart [${yearVehicles.length} Trims]`,
+      description: `Compare ${year} truck and SUV brochure towing capacities vs real payload-capped camper limits across ${yearVehicles.length} tested configurations →`,
       canonicalPath: `years/${year}`,
       breadcrumbs: [
         { label: 'Home', url: '/' },
@@ -1663,6 +1679,21 @@ Sitemap: ${SITE_URL}/sitemap.xml
 # google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
 `;
   fs.writeFileSync(path.join(DIST_DIR, 'ads.txt'), adsTxt, 'utf8');
+
+  // High-Contrast SERP SVG Favicon + Installable PWA Manifest
+  const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#0f172a"/><rect x="4" y="4" width="56" height="56" rx="10" fill="none" stroke="#38bdf8" stroke-width="3"/><text x="32" y="41" text-anchor="middle" fill="#fbbf24" font-family="monospace,sans-serif" font-size="26" font-weight="900">TM</text></svg>`;
+  fs.writeFileSync(path.join(DIST_DIR, 'favicon.svg'), faviconSvg, 'utf8');
+
+  const manifestJson = JSON.stringify({
+    name: 'TownMatrix — Truck & RV Towing Payload Calculator',
+    short_name: 'TownMatrix',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#0f172a',
+    theme_color: '#1d4ed8',
+    icons: [{ src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' }]
+  }, null, 2);
+  fs.writeFileSync(path.join(DIST_DIR, 'manifest.json'), manifestJson, 'utf8');
 
   // 5. Support Cloudflare Workers Static Assets deploy from both root (/) and dist/ working directory
   const distWranglerJson = JSON.stringify(
