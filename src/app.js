@@ -174,7 +174,8 @@
       svgTongueRect: document.getElementById('svg-tongue-pill')
     };
 
-    const params = new URLSearchParams(window.location.search);
+    const rawQuery = window.location.search ? window.location.search.slice(1) : window.location.hash.slice(1);
+    const params = new URLSearchParams(rawQuery);
     if (params.has('trailer')) inputTrailer.value = params.get('trailer');
     if (params.has('tongue')) inputTonguePct.value = params.get('tongue');
     if (params.has('pax')) inputPassengers.value = params.get('pax');
@@ -876,7 +877,7 @@
     // TOOL 1: CAT Scale Calculator (/tools/cat-scale-calculator/)
     const csRoot = document.getElementById('tool-cat-scale');
     if (csRoot) {
-      const p = new URLSearchParams(window.location.search);
+      const p = new URLSearchParams(window.location.search ? window.location.search.slice(1) : window.location.hash.slice(1));
       if (p.get('gvwr')) document.getElementById('cs-gvwr').value = p.get('gvwr');
       if (p.get('gcwr')) document.getElementById('cs-gcwr').value = p.get('gcwr');
       if (p.get('name')) {
@@ -967,7 +968,7 @@
     // TOOL 2: Altitude & Mountain Grade Derating (/tools/altitude-mountain-towing/)
     const altRoot = document.getElementById('tool-altitude');
     if (altRoot) {
-      const p = new URLSearchParams(window.location.search);
+      const p = new URLSearchParams(window.location.search ? window.location.search.slice(1) : window.location.hash.slice(1));
       if (p.get('tow')) document.getElementById('alt-tow').value = p.get('tow');
       if (p.get('engine')) {
         const eng = p.get('engine').toLowerCase();

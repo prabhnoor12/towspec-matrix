@@ -708,8 +708,8 @@ function buildVehiclePages(comparisonPairs, sitemapUrls, totalPagesCount) {
         <div class="next-tools-bar">
           <strong style="font-size:0.82rem;font-family:var(--font-mono);">NEXT-STEP TOWING VERIFICATION TOOLS FOR THIS RIG:</strong>
           <div class="next-tools-grid">
-            <a class="next-tool-link" href="/tools/cat-scale-calculator/?gvwr=${v.gvwrLbs}&amp;gcwr=${v.gcwrLbs}&amp;tow=${v.maxTowLbs}&amp;name=${encodeURIComponent(fullTitle)}"><strong>⚖️ Verify CAT Scale Ticket →</strong>Check actual Steer, Drive &amp; Trailer axle weights + WDH transfer</a>
-            <a class="next-tool-link" href="/tools/altitude-mountain-towing/?tow=${v.maxTowLbs}&amp;hp=${v.horsepower}&amp;engine=${encodeURIComponent(v.engine)}&amp;name=${encodeURIComponent(fullTitle)}"><strong>🏔️ Mountain Grade &amp; Elevation →</strong>Calculate high-altitude SAE J2807 power loss (6%–8% grades)</a>
+            <a class="next-tool-link" href="/tools/cat-scale-calculator/#gvwr=${v.gvwrLbs}&amp;gcwr=${v.gcwrLbs}&amp;tow=${v.maxTowLbs}&amp;name=${encodeURIComponent(fullTitle)}"><strong>⚖️ Verify CAT Scale Ticket →</strong>Check actual Steer, Drive &amp; Trailer axle weights + WDH transfer</a>
+            <a class="next-tool-link" href="/tools/altitude-mountain-towing/#tow=${v.maxTowLbs}&amp;hp=${v.horsepower}&amp;engine=${encodeURIComponent(v.engine)}&amp;name=${encodeURIComponent(fullTitle)}"><strong>🏔️ Mountain Grade &amp; Elevation →</strong>Calculate high-altitude SAE J2807 power loss (6%–8% grades)</a>
             <a class="next-tool-link" href="/tools/tow-checklist/"><strong>✅ Pre-Trip Hitch Checklist →</strong>Auto-saved 12-point RV departure &amp; brake controller check</a>
             <a class="next-tool-link" href="/tools/garage-compare/"><strong>📌 Compare Saved Shortlist →</strong>View all your bookmarked trucks side-by-side in My Garage</a>
           </div>
@@ -1065,7 +1065,40 @@ function buildComparisonPages(comparisonPairs, sitemapUrls, totalPagesCount) {
           </table>
         </div>
       </section>
+
+      <section class="panel deferred-section">
+        <h2>Engineering Verdict: ${titleA} (${a.trim}) vs. ${titleB} (${b.trim}) for RV &amp; Camper Towing</h2>
+        <p>When choosing between the <strong>${titleA}</strong> (${a.engine}, ${a.horsepower} HP / ${fmt.format(a.torqueLbFt)} lb-ft, ${a.axleRatio} axle) and the <strong>${titleB}</strong> (${b.engine}, ${b.horsepower} HP / ${fmt.format(b.torqueLbFt)} lb-ft, ${b.axleRatio} axle), buyers must compare both <strong>SAE J2807 pulling capacity</strong> and <strong>GVWR payload headroom</strong>:</p>
+        <ul>
+          <li><strong>Max Tow Rating Advantage (${towWinner}):</strong> The ${towWinner} leads advertised pulling capacity by <strong>+${fmt.format(towDiff)} lbs</strong> (${fmt.format(a.maxTowLbs)} lbs vs. ${fmt.format(b.maxTowLbs)} lbs).</li>
+          <li><strong>Door-Jamb Payload &amp; Tongue Weight Advantage (${payloadWinner}):</strong> The ${payloadWinner} provides <strong>+${fmt.format(payloadDiff)} lbs more payload capacity</strong> (${fmt.format(a.maxPayloadLbs)} lbs vs. ${fmt.format(b.maxPayloadLbs)} lbs). With 550 lbs of passengers, cargo, and a weight-distribution hitch, the ${titleA} safely supports a <strong>${fmt.format(realMaxA)} lb travel trailer</strong> (at 13% tongue weight), whereas the ${titleB} supports up to a <strong>${fmt.format(realMaxB)} lb travel trailer</strong>.</li>
+          <li><strong>Curb Weight &amp; GCWR Balance:</strong> The ${titleA} weighs ${fmt.format(a.curbWeightLbs)} lbs empty (${fmt.format(a.gcwrLbs)} lbs GCWR) compared to ${fmt.format(b.curbWeightLbs)} lbs (${fmt.format(b.gcwrLbs)} lbs GCWR) for the ${titleB}.</li>
+        </ul>
+      </section>
     `;
+
+    const cmpFaqSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: `Which tows more: ${titleA} (${a.trim}) or ${titleB} (${b.trim})?`,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: `The ${towWinner} has a higher maximum SAE J2807 towing capacity by ${fmt.format(towDiff)} lbs (${titleA}: ${fmt.format(a.maxTowLbs)} lbs vs ${titleB}: ${fmt.format(b.maxTowLbs)} lbs).`
+          }
+        },
+        {
+          '@type': 'Question',
+          name: `Which has higher payload capacity for travel trailer tongue weight: ${titleA} or ${titleB}?`,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: `The ${payloadWinner} offers ${fmt.format(payloadDiff)} lbs more payload capacity (${titleA}: ${fmt.format(a.maxPayloadLbs)} lbs vs ${titleB}: ${fmt.format(b.maxPayloadLbs)} lbs). With 550 lbs of passengers and hitch hardware at a 13% tongue ratio, the real-world camper limit is ${fmt.format(realMaxA)} lbs for the ${titleA} vs ${fmt.format(realMaxB)} lbs for the ${titleB}.`
+          }
+        }
+      ]
+    };
 
     const html = renderLayout({
       title: `${titleA} vs ${titleB}: Towing & Payload Winner [Chart]`,
@@ -1076,7 +1109,7 @@ function buildComparisonPages(comparisonPairs, sitemapUrls, totalPagesCount) {
         { label: `${a.year} Comparisons`, url: `/years/${a.year}/` },
         { label: `${titleA} vs ${titleB}`, url: `/compare/${slug}/` }
       ],
-      schemaJson: null,
+      schemaJson: cmpFaqSchema,
       mainContent,
       totalPagesCount
     });
@@ -1179,7 +1212,7 @@ function buildTrailerClassPages(sitemapUrls, totalPagesCount) {
                     badge = `<span class="badge badge-warn">MARGINAL (${v.worstPct}%)</span>`;
                   }
                   return `<tr>
-                    <th scope="row"><a href="/towing/${v.slug}/?trailer=${t.weightLbs}&tongue=${Math.round(t.tongueRatio * 100)}">${v.year} ${v.brand} ${v.model} (${v.trim})</a></th>
+                    <th scope="row"><a href="/towing/${v.slug}/#trailer=${t.weightLbs}&amp;tongue=${Math.round(t.tongueRatio * 100)}">${v.year} ${v.brand} ${v.model} (${v.trim})</a></th>
                     <td data-value="${v.maxTowLbs}">${fmt.format(v.maxTowLbs)} lbs</td>
                     <td data-value="${v.maxPayloadLbs}">${fmt.format(v.maxPayloadLbs)} lbs</td>
                     <td data-value="${v.payloadMargin}">${v.payloadMargin >= 0 ? '+' : ''}${fmt.format(v.payloadMargin)} lbs</td>
@@ -1309,13 +1342,14 @@ function buildBrandPages(sitemapUrls, totalPagesCount) {
 }
 
 // Build 12 Model-Year Hub Pages (/years/2015/ through /years/2026/)
-function buildYearPages(sitemapUrls, totalPagesCount) {
+function buildYearPages(comparisonPairs, sitemapUrls, totalPagesCount) {
   const years = [...new Set(vehicles.map((v) => v.year))].sort((a, b) => b - a);
 
   for (const year of years) {
     const yearVehicles = vehicles
       .filter((v) => v.year === year)
       .sort((a, b) => b.maxTowLbs - a.maxTowLbs);
+    const yearComparisons = comparisonPairs.filter((p) => p.a.year === year || p.b.year === year);
 
     const topTow = yearVehicles[0];
     const topPayload = [...yearVehicles].sort((a, b) => b.maxPayloadLbs - a.maxPayloadLbs)[0];
@@ -1394,6 +1428,21 @@ function buildYearPages(sitemapUrls, totalPagesCount) {
                 .join('')}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section class="panel deferred-section">
+        <h2>All ${year} Head-to-Head Truck &amp; SUV Towing Matchups (${yearComparisons.length} Comparisons)</h2>
+        <p class="subtitle">Direct 2-click index of every ${year} head-to-head towing and payload comparison:</p>
+        <div class="link-cluster-grid">
+          ${yearComparisons
+            .map(
+              (p) => `<a href="/compare/${p.slug}/" class="cluster-card">
+                <span class="cluster-card-title">${p.a.year} ${p.a.brand} ${p.a.model} (${p.a.trim}) vs ${p.b.brand} ${p.b.model} (${p.b.trim})</span>
+                <span class="cluster-card-meta">${fmt.format(p.a.maxTowLbs)} vs ${fmt.format(p.b.maxTowLbs)} lbs Tow • ${fmt.format(p.a.maxPayloadLbs)} vs ${fmt.format(p.b.maxPayloadLbs)} lbs Payload</span>
+              </a>`
+            )
+            .join('')}
         </div>
       </section>
     `;
@@ -1623,10 +1672,11 @@ function buildCloudflareEdgeFiles(sitemapUrls, totalPagesCount) {
 `;
   fs.writeFileSync(path.join(DIST_DIR, '_headers'), headersTxt, 'utf8');
 
-  const redirectsTxt = `# Redirect legacy or short paths to canonical matrix directories
-/vehicles/* /towing/:splat 301
-/trucks/* /towing/:splat 301
-/campers/* /trailers/:splat 301
+  const redirectsTxt = `# Redirect legacy or short paths to canonical trailing-slash matrix directories
+/index.html / 301
+/vehicles/* /towing/:splat/ 301
+/trucks/* /towing/:splat/ 301
+/campers/* /trailers/:splat/ 301
 `;
   fs.writeFileSync(path.join(DIST_DIR, '_redirects'), redirectsTxt, 'utf8');
 
@@ -1661,14 +1711,16 @@ function buildCloudflareEdgeFiles(sitemapUrls, totalPagesCount) {
   });
   fs.writeFileSync(path.join(DIST_DIR, '404.html'), notFoundHtml, 'utf8');
 
+  const uniqueSitemapUrls = [...new Set(sitemapUrls)];
   const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${sitemapUrls.map((u) => `  <url><loc>${u}</loc><changefreq>monthly</changefreq><priority>${u === SITE_URL + '/' ? '1.0' : '0.8'}</priority></url>`).join('\n')}
+${uniqueSitemapUrls.map((u) => `  <url><loc>${u}</loc><lastmod>2026-11-26</lastmod></url>`).join('\n')}
 </urlset>`;
   fs.writeFileSync(path.join(DIST_DIR, 'sitemap.xml'), sitemapXml, 'utf8');
 
   const robotsTxt = `User-agent: *
 Allow: /
+Disallow: /*?*
 Sitemap: ${SITE_URL}/sitemap.xml
 `;
   fs.writeFileSync(path.join(DIST_DIR, 'robots.txt'), robotsTxt, 'utf8');
@@ -1702,6 +1754,7 @@ Sitemap: ${SITE_URL}/sitemap.xml
       compatibility_date: '2026-11-01',
       assets: {
         directory: './',
+        html_handling: 'force-trailing-slash',
         not_found_handling: '404-page'
       }
     },
@@ -2052,7 +2105,7 @@ function runBuild() {
   buildComparisonPages(comparisonPairs, sitemapUrls, totalPagesCount);
   buildTrailerClassPages(sitemapUrls, totalPagesCount);
   buildBrandPages(sitemapUrls, totalPagesCount);
-  buildYearPages(sitemapUrls, totalPagesCount);
+  buildYearPages(comparisonPairs, sitemapUrls, totalPagesCount);
   buildDedicatedToolPages(sitemapUrls, totalPagesCount);
   buildCompliancePages(sitemapUrls, totalPagesCount);
   buildCloudflareEdgeFiles(sitemapUrls, totalPagesCount);
